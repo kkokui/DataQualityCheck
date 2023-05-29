@@ -14,15 +14,16 @@ struct TreeEntry
 };
 int main(int argc,char* argv[])
 {
-	if(argc<2)
+	if(argc<3)
 	{
-		printf("usage: %s deltaXY/tree_BeforeAlign.root\n",argv[0]);
+		printf("usage: %s deltaXY/tree_BeforeAlign.root title\n",argv[0]);
 		return 0;
 	}
 	TString filename = argv[1];
 	TString filename_short = argv[1];
 	filename_short.ReplaceAll("deltaXY/tree_","");
 	filename_short.ReplaceAll(".root","");
+	TString title = argv[2];
 
 	const float angcut = 0.01;
 	
@@ -57,7 +58,7 @@ int main(int argc,char* argv[])
 		te.meanX = htempX->GetMean();
 		delete htempX;
 		tree->Draw("deltaX>>deltax",Form("abs(deltaY)<=2&&abs(deltaX)<=2&&abs(tx+0.01)<%f&&abs(ty)<%f&&pl==%d",angcut,angcut,ipl) );
-		deltax->SetTitle(Form("pl%d;deltaX (#mum);",ipl));
+		deltax->SetTitle(Form("pl%d %s;deltaX (#mum);",ipl,title.Data()));
 		
 		f->SetParameters(1000,0,0.2);
 		
@@ -70,7 +71,7 @@ int main(int argc,char* argv[])
 		te.meanY = htempY->GetMean();
 		delete htempY;
 		tree->Draw("deltaY>>deltay",Form("abs(deltaY)<=2&&abs(deltaX)<=2&&abs(tx+0.01)<%f&&abs(ty)<%f&&pl==%d",angcut,angcut,ipl));
-		deltay->SetTitle(Form("pl%d;deltaY (#mum);",ipl));
+		deltay->SetTitle(Form("pl%d %s;deltaY (#mum);",ipl,title.Data()));
 		f->SetParameters(1000,0,0.2);
 		deltay->Fit(f,"Q","",-0.5,0.5);
 		te.sigmaY = f->GetParameter(2);
