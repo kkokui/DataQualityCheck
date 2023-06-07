@@ -69,6 +69,7 @@ int main(int argc,char* argv[])
 		tree->Draw("deltaY>>htempY",Form("abs(tx+0.01)<%f&&abs(ty)<%f&&pl==%d",angcut,angcut,ipl));
 		TH1F *htempY = (TH1F*)gDirectory->Get("htempY");
 		te.meanY = htempY->GetMean();
+		te.entries = htempY->GetEntries();
 		delete htempY;
 		tree->Draw("deltaY>>deltay",Form("abs(deltaY)<=2&&abs(deltaX)<=2&&abs(tx+0.01)<%f&&abs(ty)<%f&&pl==%d",angcut,angcut,ipl));
 		deltay->SetTitle(Form("pl%d %s;deltaY (#mum);",ipl,title.Data()));
@@ -76,7 +77,6 @@ int main(int argc,char* argv[])
 		deltay->Fit(f,"Q","",-0.5,0.5);
 		te.sigmaY = f->GetParameter(2);
 		c1->Print("pos_res/deltaxy_" + filename_short + ".pdf");
-		te.entries = deltay->GetEntries();
 		te.pl = ipl;
 		par->Fill();
 		printf("Histograms for plate %d have been printed\n", ipl);
