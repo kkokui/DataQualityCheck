@@ -11,7 +11,7 @@ all: calc_dxy efficiency check_deltaXYdis read_dxy plot_sigmaPar
 calc_dxy: calc_dxy.cu
 	nvcc calc_dxy.cu  -I`root-config --incdir` -I$(FEDRA_ROOT)/include -I$(CUDA_ROOT)/include -I$(CUDA_ROOT)/samples/common/inc -L`root-config --libdir` -L$(FEDRA_ROOT)/lib -lCore -lEve -lMathCore -lRint -lThread -lTree -lRIO -lASImage -lGpad -lHist -lGraf -lGraf3d -lcudart -lPhysics -lEdb -lEIO -lEbase -lEdr -lvt -lEmath -lAlignment -lEphys -lDataConversion -o calc_dxy
 
-$(TARGET1): $(TARGET1).cpp src/test.cpp
+$(TARGET1): $(TARGET1).cpp
 	g++ $(TARGET1).cpp -w -I src `root-config --cflags` -I$(FEDRA_ROOT)/include -L$(FEDRA_ROOT)/lib  $(FEDRALIBS) `root-config --libs` -o $(TARGET1)
 
 $(TARGET2): $(TARGET2).cpp
