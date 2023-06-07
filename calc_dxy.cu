@@ -194,7 +194,7 @@ void fitfuncRobust(Int_t &npar, Double_t *grad, Double_t &fval, Double_t *p, Int
 }
 
 
-void Align2(TObjArray *tracks,double iX, double iY, double bin_width, int fixflag, TNtupleD *sta)
+void calc_align_par(TObjArray *tracks,double iX, double iY, double bin_width, int fixflag, TNtupleD *sta)
 {
 	gTracks = tracks;
 	int ntrk = gTracks->GetEntriesFast();
@@ -343,11 +343,6 @@ void apply_align(EdbTrackP *t, double iX, double iY,double bin_width)
 	}
 }
 
-void calc_track_angle_first8()
-{
-	// code
-}
-
 int main(int argc, char *argv[])
 {
 	if (argc < 7)
@@ -363,7 +358,7 @@ int main(int argc, char *argv[])
 	sscanf(argv[5], "%lf", &bin_width);
 	sscanf(argv[6], "%f", &robustfactor);
 
-	double XYrange = 8500;
+	const double XYrange = 8500;
 	
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
@@ -374,7 +369,6 @@ int main(int argc, char *argv[])
 	int plMax = plMin + npl -1;
 
 	TObjArray *tracks = pvr->GetTracks();
-	// TObjArray *tracks = dproc->PVR()->GetTracks();
 	int ntrk = tracks->GetEntriesFast();
 	
 	if (ntrk == 0)
@@ -404,10 +398,10 @@ int main(int argc, char *argv[])
 			// printf("iX = %.0f, iY = %.0f, ntrk = %d\n", iX, iY, tracks2->GetEntries());
 			if (tracks2->GetEntries() == 0)
 				continue;
-			//Apply the alignment several times.
+			//calculate the alignment parameters several times.
 			for(int j = 0;j<1;j++)
 			{
-				// Align2(tracks2,iX,iY,bin_width,0,sta); //4th is fixflag
+				calc_align_par(tracks2,iX,iY,bin_width,0,sta); //4th is fixflag
 			}
 			// Apply alignment parameter. 
 			for (int itrk = 0; itrk < ntrk; itrk++)
@@ -421,7 +415,6 @@ int main(int argc, char *argv[])
 	}
 	
 	// Loop over the tracks
-	// TNtupleD *nt = new TNtupleD("nt", "dxdytxty", "deltaX:deltaY:tx:ty:deltaTX:deltaTY:x:y:slopeX:slopeY:plate:cross_the_line");
 	TTree *tree = new TTree("tree","deltaXY");
 	TObjString *info = new TObjString(Form("plMin=%d, plMax=%d, Xcenter=%f, Ycenter=%f",plMin,plMax,Xcenter,Ycenter));
 	tree->GetUserInfo()->Add(info);
