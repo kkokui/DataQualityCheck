@@ -554,8 +554,6 @@ int main(int argc, char *argv[])
 	sscanf(argv[3], "%lf", &Xcenter);
 	sscanf(argv[4], "%lf", &Ycenter);
 	
-
-	
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
 	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "1");
