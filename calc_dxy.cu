@@ -26,8 +26,7 @@ float robustfactor;
 double p[NPIDMAX*2] ={};
 int npl;
 int ncall = 0;
-
-
+const double XYrange = 8500;
 
 struct cudaSegment{
 	int flag, pid;
@@ -342,23 +341,220 @@ void apply_align(EdbTrackP *t, double iX, double iY,double bin_width)
 		}
 	}
 }
+int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter)
+{
+	
+	double deltaX, deltaY, tx, ty, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
+	int plate, cross_the_line;
+	tree->Branch("deltaX", &deltaX);
+	tree->Branch("deltaY", &deltaY);
+	tree->Branch("tx", &tx);
+	tree->Branch("ty", &ty);
+	tree->Branch("deltaTX", &deltaTX);
+	tree->Branch("deltaTY", &deltaTY);
+	tree->Branch("x", &x_t);
+	tree->Branch("y", &y_t);
+	tree->Branch("slopeX", &slopeX);
+	tree->Branch("slopeY", &slopeY);
+	tree->Branch("pl", &plate);
+	tree->Branch("cross_the_line", &cross_the_line);
+	double tx3;
+	double stx;
+	double ty3;
+	double sty;
+	// Loop over the tracks
+	for (int itrk = 0; itrk < ntrk; itrk++)
+	{
 
+		stx = 0.;
+		sty = 0.;
+		EdbTrackP *t = pvr->GetTrack(itrk);
+		if (abs(t->TX() + 0.01) >= 0.01 || abs(t->TY() - 0.004) >= 0.01 || t->N() < 5)
+			continue;
+
+		// printf("itrk = %d, nseg = %d\n", t->ID(), t->N());
+		// Loop over the segments in the track
+		// Get track projection.
+		int nseg = t->N();
+		TGraph grX;
+		TGraph grY;
+		int pl;
+		int plold = 10000;
+		int consecutive_seg = 0;
+
+		std::vector<double> vx(nseg);
+		std::vector<double> vy(nseg);
+		std::vector<double> vz(nseg);
+		std::vector<double> vtx(nseg);
+		std::vector<double> vty(nseg);
+		double x, y, z;
+
+		double x3, y3, z3;
+		for (int iseg = 0; iseg < nseg; iseg++)
+		{
+			EdbSegP *s = t->GetSegment(iseg);
+			// printf("%8d %3d %3d %8.1f %8.1f %8.1f %7.4f %7.4f\n", s->ID(), s->Plate(), s->PID(), s->X(), s->Y(), s->Z(), s->TX(), s->TY());
+			pl = s->Plate();
+			if (pl == plold + 1 || plold == 10000)
+			{
+				// if(consecutive_seg==10) printf("%d\n",consecutive_seg);
+				vx.at(consecutive_seg) = s->X();
+				vy.at(consecutive_seg) = s->Y();
+				vz.at(consecutive_seg) = s->Z();
+				vtx.at(consecutive_seg) = s->TX();
+				vty.at(consecutive_seg) = s->TY();
+				// grX.SetPoint(consecutive_seg, s->Z(), s->X());
+				// grY.SetPoint(consecutive_seg, s->Z(), s->Y());
+				consecutive_seg++;
+			}
+			else
+			{
+				consecutive_seg = 0;
+			}
+
+			if (consecutive_seg >= 5)
+			{
+				// printf("%d\n",grX.GetN());
+				TGraph grX;
+				TGraph grY;
+				tx = 0.;
+				ty = 0.;
+				int areaX[5];
+				int areaY[5];
+				for (int ipoint = 0; ipoint < 5; ipoint++)
+				{
+					x = vx.at(consecutive_seg - 5 + ipoint);
+					y = vy.at(consecutive_seg - 5 + ipoint);
+					z = vz.at(consecutive_seg - 5 + ipoint);
+					tx += vtx.at(consecutive_seg - 5 + ipoint);
+					ty += vty.at(consecutive_seg - 5 + ipoint);
+					areaX[ipoint] = (x - (Xcenter - XYrange)) / 2000;
+					areaY[ipoint] = (y - (Ycenter - XYrange)) / 2000;
+					if (ipoint == 2)
+					{
+						x3 = x;
+						y3 = y;
+						z3 = z;
+						tx3 = vtx.at(consecutive_seg - 5 + ipoint);
+						ty3 = vty.at(consecutive_seg - 5 + ipoint);
+					}
+					else if (ipoint < 2)
+					{
+						grX.SetPoint(ipoint, z, x);
+						grY.SetPoint(ipoint, z, y);
+					}
+					else
+					{
+						grX.SetPoint(ipoint - 1, z, x);
+						grY.SetPoint(ipoint - 1, z, y);
+					}
+				}
+				cross_the_line = 0;
+				for (int ipoint = 0; ipoint < 5 - 1; ipoint++)
+				{
+					if (areaX[ipoint] != areaX[ipoint + 1] || areaY[ipoint] != areaY[ipoint + 1])
+					{
+						cross_the_line = 1;
+						break;
+					}
+				}
+				tx /= 5.;
+				ty /= 5.;
+				grX.Fit("pol1", "Q");
+
+				double x3fit = grX.GetFunction("pol1")->Eval(z3);
+				slopeX = grX.GetFunction("pol1")->GetParameter(1);
+
+				grY.Fit("pol1", "Q");
+				slopeY = grY.GetFunction("pol1")->GetParameter(1);
+				double y3fit = grY.GetFunction("pol1")->Eval(z3);
+				// Calculate delta X and delta Y.
+				deltaX = x3 - x3fit;
+				deltaY = y3 - y3fit;
+				deltaTX = tx3 - slopeX;
+				deltaTY = ty3 - slopeY;
+				x_t = t->X();
+				y_t = t->Y();
+				plate = pl - 2;
+				tree->Fill();
+			}
+			plold = pl;
+		}
+		// printf("\n");
+	}
+	return 0;
+}
+int dedicated_align(TObjArray *tracks,double Xcenter, double Ycenter, double bin_width)
+{
+	gMinuit = TVirtualFitter::Fitter(0, 300);
+	TNtupleD *sta = new TNtupleD("sta", "ShiftTAlign", "iX:iY:shiftX:shiftY:pid");
+	int ntrk = tracks->GetEntriesFast();
+
+	for (double iY = Ycenter - XYrange + bin_width / 2; iY <= Ycenter + XYrange; iY += bin_width) // Divide the area into 2*2 mm^2 areas
+	{
+		for (double iX = Xcenter - XYrange + bin_width / 2; iX <= Xcenter + XYrange; iX += bin_width)
+		{
+			TObjArray *tracks2 = new TObjArray;
+
+			for (int itrk = 0; itrk < ntrk; itrk++)
+			{
+				EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
+				// if (t->N()<10|| abs(t->TX() + 0.01) >= 0.01 || abs(t->TY()-0.004) >= 0.01||t->GetSegment(0)->PID()>=10)
+				if (t->N() < 10 || abs(t->TX() + 0.01) >= 0.01 || abs(t->TY() - 0.004) >= 0.01)
+					continue;
+				// if (fabs(t->X() - iX) < bin_width / 2 && fabs(t->Y() - iY) < bin_width / 2)
+				if (10 <= count_passed_seg(t, iX, iY, bin_width)) //  check if the track passes the area
+					tracks2->Add(t);
+			}
+			// printf("iX = %.0f, iY = %.0f, ntrk = %d\n", iX, iY, tracks2->GetEntries());
+			if (tracks2->GetEntries() == 0)
+				continue;
+			// calculate the alignment parameters several times.
+			for (int j = 0; j < 1; j++)
+			{
+				calc_align_par(tracks2,iX,iY,bin_width,0,sta); //4th is fixflag
+			}
+			// Apply alignment parameter.
+			for (int itrk = 0; itrk < ntrk; itrk++)
+			{
+				EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
+				// if (fabs(t->X() - iX) < bin_width / 2 && fabs(t->Y() - iY) < bin_width / 2)
+				apply_align(t, iX, iY, bin_width);
+			}
+			delete tracks2;
+		}
+	}
+	// Ntuple for Shifts of TAlign
+	// TFile fout1(Form("ShiftPar/sta_%.0fbinwidth_t1_NoFix_Robust%.1f_NoStraySeg_over10seg.root", bin_width, robustfactor), "recreate");
+	// sta->Write();
+	// fout1.Close();
+	return 0;
+}
 int main(int argc, char *argv[])
 {
-	if (argc < 7)
+	bool alignFlag = true;
+	if(argc>5)
 	{
+		alignFlag = strcmp(argv[5], "--NoAlign") != 0;
+	}else{
 		printf("Usage: ./calc_dxy linked_tracks.root title Xcenter Ycenter bin_width robustfactor\n");
+		printf("Usage: ./calc_dxy linked_tracks.root title Xcenter Ycenter --NoAlign\n");
 		return 1;
 	}
+	if ( argc<7&&alignFlag)
+	{
+		printf("Usage: ./calc_dxy linked_tracks.root title Xcenter Ycenter bin_width robustfactor\n");
+		printf("Usage: ./calc_dxy linked_tracks.root title Xcenter Ycenter --NoAlign\n");
+		return 1;
+	}
+
 	TString filename_linked_tracks = argv[1];
 	TString title = argv[2];
 	double Xcenter, Ycenter, bin_width;
 	sscanf(argv[3], "%lf", &Xcenter);
 	sscanf(argv[4], "%lf", &Ycenter);
-	sscanf(argv[5], "%lf", &bin_width);
-	sscanf(argv[6], "%f", &robustfactor);
+	
 
-	const double XYrange = 8500;
 	
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
@@ -376,184 +572,18 @@ int main(int argc, char *argv[])
 		printf("ntrk==0\n");
 		return 0;
 	}
-	gMinuit = TVirtualFitter::Fitter(0, 300);
-	TNtupleD *sta = new TNtupleD("sta","ShiftTAlign","iX:iY:shiftX:shiftY:pid");
-
-	for (double iY = Ycenter-XYrange+bin_width/2; iY <= Ycenter+XYrange; iY += bin_width)// Divide the area into 2*2 mm^2 areas 
+	if (alignFlag) //if perform alignment
 	{
-		for (double iX = Xcenter-XYrange+bin_width/2; iX <= Xcenter+XYrange; iX += bin_width)
-		{
-			TObjArray *tracks2 = new TObjArray;
-			
-			for (int itrk = 0; itrk < ntrk; itrk++)
-			{
-				EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
-				// if (t->N()<10|| abs(t->TX() + 0.01) >= 0.01 || abs(t->TY()-0.004) >= 0.01||t->GetSegment(0)->PID()>=10)
-				if (t->N()<10|| abs(t->TX() + 0.01) >= 0.01 || abs(t->TY()-0.004) >= 0.01)
-					continue;
-				// if (fabs(t->X() - iX) < bin_width / 2 && fabs(t->Y() - iY) < bin_width / 2)
-				if(10<=count_passed_seg(t,iX,iY,bin_width)) //  check if the track passes the area
-					tracks2->Add(t);
-			}
-			// printf("iX = %.0f, iY = %.0f, ntrk = %d\n", iX, iY, tracks2->GetEntries());
-			if (tracks2->GetEntries() == 0)
-				continue;
-			//calculate the alignment parameters several times.
-			for(int j = 0;j<1;j++)
-			{
-				calc_align_par(tracks2,iX,iY,bin_width,0,sta); //4th is fixflag
-			}
-			// Apply alignment parameter. 
-			for (int itrk = 0; itrk < ntrk; itrk++)
-			{
-				EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
-				// if (fabs(t->X() - iX) < bin_width / 2 && fabs(t->Y() - iY) < bin_width / 2)
-				apply_align(t, iX, iY, bin_width);
-			}
-			delete tracks2;
-		}
+		sscanf(argv[5], "%lf", &bin_width);
+		sscanf(argv[6], "%f", &robustfactor);
+		dedicated_align(tracks,Xcenter,Ycenter,bin_width);
 	}
-	
-	// Loop over the tracks
-	TTree *tree = new TTree("tree","deltaXY");
-	TObjString *info = new TObjString(Form("plMin=%d, plMax=%d, Xcenter=%f, Ycenter=%f",plMin,plMax,Xcenter,Ycenter));
+
+	TTree *tree = new TTree("tree", "deltaXY");
+	TObjString *info = new TObjString(Form("plMin=%d, plMax=%d, Xcenter=%f, Ycenter=%f", plMin, plMax, Xcenter, Ycenter));
 	tree->GetUserInfo()->Add(info);
-	double deltaX, deltaY, tx, ty, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
-	int plate, cross_the_line;
-	tree->Branch("deltaX",&deltaX);
-	tree->Branch("deltaY",&deltaY);
-	tree->Branch("tx",&tx);
-	tree->Branch("ty",&ty);
-	tree->Branch("deltaTX",&deltaTX);
-	tree->Branch("deltaTY",&deltaTY);
-	tree->Branch("x",&x_t);
-	tree->Branch("y",&y_t);
-	tree->Branch("slopeX", &slopeX);
-	tree->Branch("slopeY", &slopeY);
-	tree->Branch("pl",&plate);
-	tree->Branch("cross_the_line", &cross_the_line);
-	double tx3;
-	double stx;
-	double ty3;
-	double sty;
-	for (int itrk = 0; itrk < ntrk; itrk++)
-	{
 
-		stx = 0.;
-		sty = 0.;
-		EdbTrackP *t = pvr->GetTrack(itrk);
-		if(abs(t->TX()+0.01)>=0.01||abs(t->TY()-0.004)>=0.01||t->N()<5) continue;
-		
-		// printf("itrk = %d, nseg = %d\n", t->ID(), t->N());
-		// Loop over the segments in the track
-		// Get track projection.
-		int nseg = t->N();
-		TGraph grX;
-		TGraph grY;
-		int pl;
-		int plold = 10000;
-		int consecutive_seg = 0;
-		
-		std::vector<double> vx(nseg);
-		std::vector<double> vy(nseg);
-		std::vector<double> vz(nseg);
-		std::vector<double> vtx(nseg);
-		std::vector<double> vty(nseg);
-		double x,y,z;
-		
-		double x3,y3,z3;
-		for (int iseg = 0; iseg < nseg; iseg++)
-		{
-			EdbSegP *s = t->GetSegment(iseg);
-			// printf("%8d %3d %3d %8.1f %8.1f %8.1f %7.4f %7.4f\n", s->ID(), s->Plate(), s->PID(), s->X(), s->Y(), s->Z(), s->TX(), s->TY());
-			pl = s->Plate();
-			if (pl == plold + 1 || plold == 10000)
-			{
-				//if(consecutive_seg==10) printf("%d\n",consecutive_seg);
-				vx.at(consecutive_seg)=s->X();
-				vy.at(consecutive_seg)=s->Y();
-				vz.at(consecutive_seg)=s->Z();
-				vtx.at(consecutive_seg)=s->TX();
-				vty.at(consecutive_seg)=s->TY();
-				// grX.SetPoint(consecutive_seg, s->Z(), s->X());
-				// grY.SetPoint(consecutive_seg, s->Z(), s->Y());
-				consecutive_seg++;
-				
-			} 
-			else 
-			{
-				consecutive_seg = 0;
-			}
-			
-			if (consecutive_seg >= 5)
-			{
-				// printf("%d\n",grX.GetN());
-				TGraph grX;
-				TGraph grY;
-				tx=0.;
-				ty = 0.;
-				int areaX[5];
-				int areaY[5];
-				for(int ipoint = 0;ipoint<5;ipoint++){
-					x = vx.at(consecutive_seg - 5 + ipoint );
-					y = vy.at(consecutive_seg - 5 + ipoint );
-					z = vz.at(consecutive_seg - 5 + ipoint );
-					tx += vtx.at(consecutive_seg - 5 + ipoint);
-					ty += vty.at(consecutive_seg - 5 + ipoint);
-					areaX[ipoint] = (x - (Xcenter - XYrange)) / 2000;
-					areaY[ipoint] = (y - (Ycenter - XYrange)) / 2000;
-					if(ipoint==2){
-						x3 = x;
-						y3 = y;
-						z3 = z;
-						tx3 = vtx.at(consecutive_seg - 5 + ipoint);
-						ty3 = vty.at(consecutive_seg - 5 + ipoint);
-					} else if(ipoint<2){
-						grX.SetPoint(ipoint,z,x);
-						grY.SetPoint(ipoint,z,y);
-					} else {
-						grX.SetPoint(ipoint-1,z,x);
-						grY.SetPoint(ipoint-1,z,y);
-					}
-				}
-				cross_the_line = 0;
-				for (int ipoint = 0; ipoint < 5 - 1; ipoint++)
-				{
-					if (areaX[ipoint] != areaX[ipoint + 1] || areaY[ipoint] != areaY[ipoint + 1])
-					{
-						cross_the_line = 1;
-						break;
-					}
-				}
-				tx/=5.;
-				ty/=5.;
-				grX.Fit("pol1", "Q");
-				
-				double x3fit = grX.GetFunction("pol1")->Eval(z3);
-				slopeX = grX.GetFunction("pol1")->GetParameter(1);
-
-				grY.Fit("pol1", "Q");
-				slopeY = grY.GetFunction("pol1")->GetParameter(1);
-				double y3fit = grY.GetFunction("pol1")->Eval(z3);
-				// Calculate delta X and delta Y.
-				deltaX = x3 - x3fit;
-				deltaY = y3 - y3fit;
-				deltaTX = tx3 - slopeX;
-				deltaTY = ty3 - slopeY;
-				x_t = t->X();
-				y_t = t->Y();
-				plate = pl-2;
-				tree->Fill();
-			}
-			plold = pl;
-		}
-		//printf("\n");
-	}
-	// Ntuple for Shifts of TAlign
-	// TFile fout1(Form("ShiftPar/sta_%.0fbinwidth_t1_NoFix_Robust%.1f_NoStraySeg_over10seg.root", bin_width, robustfactor), "recreate");
-	// sta->Write();
-	// fout1.Close();
-	
+	calc_dxy(pvr,tree,ntrk,Xcenter,Ycenter);
 	// Ntuple for deltaXY
 	// TFile fout(Form("deltaXY%s_nt_reconnected_%.0fbinwidth_func2_t1.root", module,bin_width), "recreate");
 	// TFile fout(Form("deltaXY/nt_aligntfd_NAlign_%.0f_%.0f.root",Xcenter,Ycenter), "recreate");
@@ -561,11 +591,9 @@ int main(int argc, char *argv[])
 	// TFile fout(Form("deltaXY/nt_aligntfd_reconnected_%.0fbinwidth_NAlign_%.0f_%.0f.root",bin_width,Xcenter,Ycenter), "recreate");
 	// TFile fout(Form("deltaXY%s_nt_reconnected_%.0fbinwidth_func2_ttest.root", module,bin_width), "recreate");
 	// TFile fout(Form("deltaXY/nt_%.0fbinwidth_t1_NoFix_Robust%.1f_NoStraySeg_over10seg.root",bin_width,robustfactor), "recreate");
-	TFile fout("deltaXY/tree_"+title+".root", "recreate");
-	// nt->Draw("colz");
+	TFile fout("deltaXY/tree_" + title + ".root", "recreate");
 	tree->Write();
 	fout.Close();
-
 	// トラックアライメント後のlinked_tracksを作る
 	//  TObjArray *tracks_t = new TObjArray;
 	//  for(int itrk=0;itrk<ntrk;itrk++)
@@ -576,4 +604,5 @@ int main(int argc, char *argv[])
 	//  dproc->MakeTracksTree(*tracks_t,0,0,Form("/data/Users/kokui/FASERnu/F222/test/F222_zone3_vertex003_test2/reco43_095000_065000/v13/linked_tracks_AfterAlign_Robust%.1f_NoStraySeg_over10seg_StartAtFirst10.root",robustfactor));
 
 	return 0;
+	
 }
