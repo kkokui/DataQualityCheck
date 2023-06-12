@@ -46,7 +46,7 @@ int make_plot(TString filename, TString title)
 	mg->Add(grX);
 	mg->Add(grY);
 	TH2D *fr = new TH2D("fr", "mean:plate (" + title + ");plate;mean (#mum)", 10, plMin, plMax, 10, -0.26, 0.26);
-	fr->Draw();
+	// fr->Draw();
 	fr->SetStats(0);
 	mg->Draw("p");
 	c1->SetGridx(1);
