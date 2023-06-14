@@ -345,7 +345,7 @@ int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter
 {
 	
 	double deltaX, deltaY, tx, ty, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
-	int plate, cross_the_line;
+	int plate, cross_the_line,trid;
 	tree->Branch("deltaX", &deltaX);
 	tree->Branch("deltaY", &deltaY);
 	tree->Branch("tx", &tx);
@@ -358,6 +358,7 @@ int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter
 	tree->Branch("slopeY", &slopeY);
 	tree->Branch("pl", &plate);
 	tree->Branch("cross_the_line", &cross_the_line);
+	tree->Branch("trid", &trid);
 	double tx3;
 	double stx;
 	double ty3;
@@ -372,9 +373,7 @@ int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter
 		if (abs(t->TX() + 0.01) >= 0.01 || abs(t->TY() - 0.004) >= 0.01 || t->N() < 5)
 			continue;
 
-		// printf("itrk = %d, nseg = %d\n", t->ID(), t->N());
-		// Loop over the segments in the track
-		// Get track projection.
+		trid=t->ID();
 		int nseg = t->N();
 		TGraph grX;
 		TGraph grY;
