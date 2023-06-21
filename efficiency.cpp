@@ -39,7 +39,7 @@ int main(int argc , char *argv[]){
 	TH1D *h_TY_total = new TH1D("hist_TY_total", title + ";tan#theta;", nbins, bins);
 	TH1D *h_TY_passed = new TH1D("hist_TY_passed", title + ";tan#theta;", nbins, bins);
 
-	TFile treefout(Form("efficiency_output/tree_efficiency_%s.root", title.Data()), "recreate"); // to check the distribution of passed segments
+	TFile treefout(Form("efficiency_output/tree_OtherInfo_%s.root", title.Data()), "recreate"); // to check the distribution of passed segments
 	TTree *tree = new TTree("tree","efficiency infomation");
 	int trackID,pl,nseg,W,hitsOnThePlate;
 	double x, y, angle, TX, TY;
@@ -48,6 +48,8 @@ int main(int argc , char *argv[]){
 	tree->Branch("x",&x);
 	tree->Branch("y",&y);
 	tree->Branch("angle",&angle);
+	tree->Branch("TX",&TX);
+	tree->Branch("TY",&TY);
 	tree->Branch("pl",&pl);
 	tree->Branch("nseg",&nseg);
 	tree->Branch("W",&W);
