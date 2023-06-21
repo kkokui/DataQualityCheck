@@ -27,9 +27,9 @@ int main(int argc , char *argv[]){
 	TEfficiency *pEff_plate =0;
 	
 	int ntrk = pvr->Ntracks();
-	double bins[] = {0,0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.11,0.12,0.13,0.14,0.15,0.2,1.0};
-	int nbins = 17;
-	
+	double bins[] = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
+	int nbins = 26;
+
 	TH1D *h_angle_total = new TH1D("hist_angle_total", title+";tan#theta;", nbins, bins);
 	TH1D *h_angle_passed = new TH1D("hist_angle_passed", title+";tan#theta;", nbins, bins);
 	TH1D *h_plate_total = new TH1D("hist_plate_total", title+";plate;", plMax-plMin, plMin,plMax);
