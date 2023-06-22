@@ -29,15 +29,17 @@ int main(int argc , char *argv[]){
 	int ntrk = pvr->Ntracks();
 	double bins[] = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
 	int nbins = 26;
+	double bins_pm[] = {-0.5, -0.45, -0.4, -0.35, -0.3, -0.25, -0.2, -0.19, -0.18, -0.17, -0.16, -0.15, -0.14, -0.13, -0.12, -0.11, -0.10, -0.09, -0.08, -0.07, -0.06, -0.05, -0.04, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
+	int nbins_pm = 52;
 
-	TH1D *h_angle_total = new TH1D("hist_angle_total", title+";tan#theta;", nbins, bins);
+	TH1D *h_angle_total = new TH1D("hist_angle_total", title + ";tan#theta;", nbins, bins);
 	TH1D *h_angle_passed = new TH1D("hist_angle_passed", title+";tan#theta;", nbins, bins);
 	TH1D *h_plate_total = new TH1D("hist_plate_total", title+";plate;", plMax-plMin, plMin,plMax);
 	TH1D *h_plate_passed = new TH1D("hist_plate_passed", title + ";plate;", plMax - plMin, plMin, plMax);
-	TH1D *h_TX_total = new TH1D("hist_TX_total", title + ";tan#theta;", nbins, bins);
-	TH1D *h_TX_passed = new TH1D("hist_TX_passed", title + ";tan#theta;", nbins,bins);
-	TH1D *h_TY_total = new TH1D("hist_TY_total", title + ";tan#theta;", nbins, bins);
-	TH1D *h_TY_passed = new TH1D("hist_TY_passed", title + ";tan#theta;", nbins, bins);
+	TH1D *h_TX_total = new TH1D("hist_TX_total", title + ";tan#theta;", nbins_pm, bins_pm);
+	TH1D *h_TX_passed = new TH1D("hist_TX_passed", title + ";tan#theta;", nbins_pm, bins_pm);
+	TH1D *h_TY_total = new TH1D("hist_TY_total", title + ";tan#theta;", nbins_pm, bins_pm);
+	TH1D *h_TY_passed = new TH1D("hist_TY_passed", title + ";tan#theta;", nbins_pm, bins_pm);
 
 	TFile treefout(Form("efficiency_output/tree_OtherInfo_%s.root", title.Data()), "recreate"); // to check the distribution of passed segments
 	TTree *tree = new TTree("tree","efficiency infomation");
