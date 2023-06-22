@@ -552,6 +552,8 @@ int main(int argc, char *argv[])
 	double Xcenter, Ycenter, bin_width;
 	sscanf(argv[3], "%lf", &Xcenter);
 	sscanf(argv[4], "%lf", &Ycenter);
+	TString Align_or_NoAlign = "";
+	if(!alignFlag) Align_or_NoAlign = "_BeforeAlign";
 	
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
@@ -588,7 +590,7 @@ int main(int argc, char *argv[])
 	// TFile fout(Form("deltaXY/nt_aligntfd_reconnected_%.0fbinwidth_NAlign_%.0f_%.0f.root",bin_width,Xcenter,Ycenter), "recreate");
 	// TFile fout(Form("deltaXY%s_nt_reconnected_%.0fbinwidth_func2_ttest.root", module,bin_width), "recreate");
 	// TFile fout(Form("deltaXY/nt_%.0fbinwidth_t1_NoFix_Robust%.1f_NoStraySeg_over10seg.root",bin_width,robustfactor), "recreate");
-	TFile fout("deltaXY/tree_" + title + ".root", "recreate");
+	TFile fout("deltaXY/tree_" + title + Align_or_NoAlign + ".root", "recreate");
 	tree->Write();
 	fout.Close();
 	// トラックアライメント後のlinked_tracksを作る
