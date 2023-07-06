@@ -50,7 +50,7 @@ int make_plot(TString filename, TString title)
 	fr->SetStats(0);
 	mg->Draw("p");
 	c1->SetGridx(1);
-	TLegend *leg = new TLegend(0.7, 0.9, 0.9, 1.0);
+	TLegend *leg = new TLegend(0.9, 0.8, 1.0, 0.9);
 	leg->AddEntry(grX, "", "p");
 	leg->AddEntry(grY, "", "p");
 	leg->Draw();
@@ -94,7 +94,7 @@ int make_plot(TString filename, TString title)
 	// fr->Draw();
 	// fr->SetStats(0);
 	mg2->Draw("ap");
-	TLegend *leg2 = new TLegend(0.7, 0.9, 0.9, 1.0);
+	TLegend *leg2 = new TLegend(0.9, 0.8, 1.0, 0.9);
 	leg2->AddEntry(grsigX, "", "p");
 	leg2->AddEntry(grsigY, "", "p");
 	leg2->Draw();
