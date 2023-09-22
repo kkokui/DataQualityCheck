@@ -20,9 +20,9 @@ int main(int argc , char *argv[]){
 	EdbPVRec *pvr = new EdbPVRec;
 	dproc->ReadTracksTree(*pvr, filename_linked_tracks, cut);
 
-	int npl = pvr->Npatterns();
-	int plMin = pvr->GetPatternByPID(0)->Plate();
-	int plMax = plMin + npl - 1;
+	int nPID = pvr->Npatterns();
+	int plMin = pvr->GetPattern(0)->Plate();
+	int plMax = pvr->GetPattern(nPID-1)->Plate();
 	
 	TEfficiency *pEff_angle =0;
 	TEfficiency *pEff_plate =0;
@@ -62,8 +62,8 @@ int main(int argc , char *argv[]){
 	for(int itrk=0; itrk<ntrk; itrk++){
 		EdbTrackP *t = pvr->GetTrack(itrk);
 		int nseg = t->N();
-		for(int iPID=2;iPID<npl-2;iPID++){
-			int iplate = plMin+iPID;
+		for(int iPID=2;iPID<nPID-2;iPID++){
+			int iplate = pvr->GetPattern(iPID)->Plate();
 			int counts = 0;
 			hitsOnThePlate = 0;
 			W=0;
