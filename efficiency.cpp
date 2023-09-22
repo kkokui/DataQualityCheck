@@ -20,8 +20,9 @@ int main(int argc , char *argv[]){
 	EdbPVRec *pvr = new EdbPVRec;
 	dproc->ReadTracksTree(*pvr, filename_linked_tracks, cut);
 
+	int npl = pvr->Npatterns();
 	int plMin = pvr->GetPatternByPID(0)->Plate();
-	int plMax = plMin + pvr->Npatterns() - 1;
+	int plMax = plMin + npl - 1;
 	
 	TEfficiency *pEff_angle =0;
 	TEfficiency *pEff_plate =0;
@@ -61,27 +62,28 @@ int main(int argc , char *argv[]){
 	for(int itrk=0; itrk<ntrk; itrk++){
 		EdbTrackP *t = pvr->GetTrack(itrk);
 		int nseg = t->N();
-		for(int iplate=plMin;iplate<=plMax;iplate++){
+		for(int iPID=2;iPID<npl-2;iPID++){
+			int iplate = plMin+iPID;
 			int counts = 0;
 			hitsOnThePlate = 0;
 			W=0;
 			for(int iseg=0;iseg<nseg;iseg++){
 				EdbSegP *s = t->GetSegment(iseg);
 				
-				if(s->Plate()==iplate-2||s->Plate()==iplate+2) counts++;
-				if(s->Plate()==iplate-1){
+				if(s->PID()==iPID-2||s->PID()==iPID+2) counts++;
+				if(s->PID()==iPID-1){
 					x1=s->X();
 					y1=s->Y();
 					z1=s->Z();
 					counts++;
 				}
-				if(s->Plate()==iplate+1){
+				if(s->PID()==iPID+1){
 					x2=s->X();
 					y2=s->Y();
 					z2=s->Z();
 					counts++;
 				}
-				if(s->Plate()==iplate)
+				if(s->PID()==iPID)
 				{
 					hitsOnThePlate=1;
 					W=s->W();
