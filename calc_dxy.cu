@@ -15,7 +15,7 @@
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 
-const int NPIDMAX=300;
+const int NPIDMAX=800;
 TObjArray *gTracks;
 TVirtualFitter *gMinuit;
 int gpidMax;
@@ -24,7 +24,7 @@ int gpidcutntrk;
 int gflag_chi2dis;
 float robustfactor;
 double p[NPIDMAX*2] ={};
-int npl;
+int nPID;
 int ncall = 0;
 const double XYrange = 8500;
 
@@ -95,7 +95,24 @@ __global__ void lsm_kernel(int n, cudaTrack* d_trk, double *d_param) {
 	}
 	__syncthreads();
 }
-	
+
+void lsm(double x[],double y[], int N, double &a0, double &a1)
+{
+	// y = a0 + a1*x
+    int i;
+    double A00=0 ,A01=0, A02=0, A11=0, A12=0;
+
+    for (i=0;i<N;i++) {
+        A00+=1.0;
+        A01+=x[i];
+        A02+=y[i];
+        A11+=x[i]*x[i];
+        A12+=x[i]*y[i];
+    }
+    a0 = (A02*A11-A01*A12) / (A00*A11-A01*A01);
+    a1 = (A00*A12-A01*A02) / (A00*A11-A01*A01);
+}
+
 	
 
 __global__ void calc_chi2_kernel(int n, cudaTrack* d_trk, double *p, float *d_chi2) {
@@ -178,7 +195,7 @@ void fitfuncRobust(Int_t &npar, Double_t *grad, Double_t &fval, Double_t *p, Int
 	double lambda = 0.1;
 	
 	//regularization
-	/*for(int i=0;i<npl*2)
+	/*for(int i=0;i<nPID*2)
 	{
 		delta2+=lambda*p[i]*p[i]; //L2 regularization
 		// delta2+=lambda*abs(p[i]); //L1 regularization
@@ -237,12 +254,12 @@ void calc_align_par(TObjArray *tracks,double iX, double iY, double bin_width, in
 	int pid=0; //最初のプレート
 	gMinuit->SetParameter(2*pid,Form("dx%d",pid),0,0,0,0);
 	gMinuit->SetParameter(2*pid+1,Form("dy%d",pid),0,0,0,0);
-	for(pid=1;pid<npl-1;pid++)
+	for(pid=1;pid<nPID-1;pid++)
 	{
 		gMinuit->SetParameter(2*pid,Form("dx%d",pid),0,0.1,-30,30);
 		gMinuit->SetParameter(2*pid+1,Form("dy%d",pid),0,0.1,-30,30);
 	}
-	pid=npl-1; // 最後のプレート
+	pid=nPID-1; // 最後のプレート
 	if(fixflag==1)
 	{
 		gMinuit->SetParameter(2*pid,Form("dx%d",pid),0,0,0,0);
@@ -281,14 +298,14 @@ void calc_align_par(TObjArray *tracks,double iX, double iY, double bin_width, in
 	double parErrors[3];
 	*/
 	// get result
-	for (int i = 0; i < npl*2; ++i)
+	for (int i = 0; i < nPID*2; ++i)
 	{
 		p[i] = gMinuit->GetParameter(i);
 
 		// parErrors[i] = minuit->GetParError(i);
 	}
 	
-	for(int pid=0;pid<npl;pid++)
+	for(int pid=0;pid<nPID;pid++)
 	{
 		sta->Fill(iX,iY,p[pid*2],p[pid*2+1],pid);
 	}
@@ -341,15 +358,13 @@ void apply_align(EdbTrackP *t, double iX, double iY,double bin_width)
 		}
 	}
 }
-int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter)
+int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter, double bin_width)
 {
 	
 	double deltaX, deltaY, tx, ty, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
 	int plate, cross_the_line,trid,nseg;
 	tree->Branch("deltaX", &deltaX);
 	tree->Branch("deltaY", &deltaY);
-	tree->Branch("tx", &tx);
-	tree->Branch("ty", &ty);
 	tree->Branch("deltaTX", &deltaTX);
 	tree->Branch("deltaTY", &deltaTY);
 	tree->Branch("x", &x_t);
@@ -387,100 +402,80 @@ int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter
 		std::vector<double> vz(nseg);
 		std::vector<double> vtx(nseg);
 		std::vector<double> vty(nseg);
-		double x, y, z;
 
 		double x3, y3, z3;
-		for (int iseg = 0; iseg < nseg; iseg++)
+		for(int iPID=2;iPID<nPID-2;iPID++)
 		{
-			EdbSegP *s = t->GetSegment(iseg);
-			// printf("%8d %3d %3d %8.1f %8.1f %8.1f %7.4f %7.4f\n", s->ID(), s->Plate(), s->PID(), s->X(), s->Y(), s->Z(), s->TX(), s->TY());
-			pl = s->Plate();
-			if (pl == plold + 1 || plold == 10000)
+			int count=0;
+			double x[5];
+			double y[5];
+			double z[5];
+			for (int iseg = 0; iseg < nseg; iseg++)
 			{
-				// if(consecutive_seg==10) printf("%d\n",consecutive_seg);
-				vx.at(consecutive_seg) = s->X();
-				vy.at(consecutive_seg) = s->Y();
-				vz.at(consecutive_seg) = s->Z();
-				vtx.at(consecutive_seg) = s->TX();
-				vty.at(consecutive_seg) = s->TY();
-				// grX.SetPoint(consecutive_seg, s->Z(), s->X());
-				// grY.SetPoint(consecutive_seg, s->Z(), s->Y());
-				consecutive_seg++;
-			}
-			else
-			{
-				consecutive_seg = 0;
-			}
-
-			if (consecutive_seg >= 5)
-			{
-				// printf("%d\n",grX.GetN());
-				TGraph grX;
-				TGraph grY;
-				tx = 0.;
-				ty = 0.;
-				int areaX[5];
-				int areaY[5];
-				for (int ipoint = 0; ipoint < 5; ipoint++)
+				EdbSegP *s = t->GetSegment(iseg);
+				for(int ipoint=0;ipoint<5;ipoint++)
 				{
-					x = vx.at(consecutive_seg - 5 + ipoint);
-					y = vy.at(consecutive_seg - 5 + ipoint);
-					z = vz.at(consecutive_seg - 5 + ipoint);
-					tx += vtx.at(consecutive_seg - 5 + ipoint);
-					ty += vty.at(consecutive_seg - 5 + ipoint);
-					areaX[ipoint] = (x - (Xcenter - XYrange)) / 2000;
-					areaY[ipoint] = (y - (Ycenter - XYrange)) / 2000;
-					if (ipoint == 2)
+					if(s->PID()==iPID-2+ipoint)
 					{
-						x3 = x;
-						y3 = y;
-						z3 = z;
-						tx3 = vtx.at(consecutive_seg - 5 + ipoint);
-						ty3 = vty.at(consecutive_seg - 5 + ipoint);
-					}
-					else if (ipoint < 2)
-					{
-						grX.SetPoint(ipoint, z, x);
-						grY.SetPoint(ipoint, z, y);
-					}
-					else
-					{
-						grX.SetPoint(ipoint - 1, z, x);
-						grY.SetPoint(ipoint - 1, z, y);
+						x[ipoint]=s->X();
+						y[ipoint]=s->Y();
+						z[ipoint]=s->Z();
+						count++;
 					}
 				}
-				cross_the_line = 0;
-				for (int ipoint = 0; ipoint < 5 - 1; ipoint++)
+				if(s->PID()==iPID)
 				{
-					if (areaX[ipoint] != areaX[ipoint + 1] || areaY[ipoint] != areaY[ipoint + 1])
-					{
-						cross_the_line = 1;
-						break;
-					}
+					tx3=s->TX();
+					ty3=s->TY();
 				}
-				tx /= 5.;
-				ty /= 5.;
-				grX.Fit("pol1", "Q");
-
-				double x3fit = grX.GetFunction("pol1")->Eval(z3);
-				slopeX = grX.GetFunction("pol1")->GetParameter(1);
-
-				grY.Fit("pol1", "Q");
-				slopeY = grY.GetFunction("pol1")->GetParameter(1);
-				double y3fit = grY.GetFunction("pol1")->Eval(z3);
-				// Calculate delta X and delta Y.
-				deltaX = x3 - x3fit;
-				deltaY = y3 - y3fit;
-				deltaTX = tx3 - slopeX;
-				deltaTY = ty3 - slopeY;
-				x_t = t->X();
-				y_t = t->Y();
-				plate = pl - 2;
-				tree->Fill();
 			}
-			plold = pl;
+			if(count!=5) continue;
+			// printf("%d\n",grX.GetN());
+			int areaX[5];
+			int areaY[5];
+			for (int ipoint = 0; ipoint < 5; ipoint++)
+			{
+				areaX[ipoint] = (x[ipoint] - (Xcenter - XYrange)) / bin_width;
+				areaY[ipoint] = (y[ipoint] - (Ycenter - XYrange)) / bin_width;
+			}
+			cross_the_line = 0;
+			for (int ipoint = 0; ipoint < 5 - 1; ipoint++)
+			{
+				if (areaX[ipoint] != areaX[ipoint + 1] || areaY[ipoint] != areaY[ipoint + 1])
+				{
+					cross_the_line = 1;
+					break;
+				}
+			}
+			double x_updown[4],y_updown[4],z_updown[4];
+			for(int i=0;i<2;i++)
+			{
+				x_updown[i] = x[i];
+				y_updown[i] = y[i];
+				z_updown[i] = z[i];
+			}
+			for(int i=2;i<4;i++)
+			{
+				x_updown[i] = x[i+1];
+				y_updown[i] = y[i+1];
+				z_updown[i] = z[i+1];
+			}
+			double a0;
+			lsm(z_updown,x_updown,4,a0,slopeX);
+			double x3fit = a0+slopeX*z[2];
+			lsm(z_updown,y_updown,4,a0,slopeY);
+			double y3fit = a0+slopeY*z[2];
+
+			// Calculate delta X and delta Y.
+			deltaX = x[2] - x3fit;
+			deltaY = y[2] - y3fit;
+			deltaTX = tx3 - slopeX;
+			deltaTY = ty3 - slopeY;
+			x_t = t->X();
+			y_t = t->Y();
+			plate = pvr->GetPattern(iPID)->Plate();
+			tree->Fill();
 		}
-		// printf("\n");
 	}
 	return 0;
 }
@@ -551,6 +546,7 @@ int main(int argc, char *argv[])
 	TString filename_linked_tracks = argv[1];
 	TString title = argv[2];
 	double Xcenter, Ycenter, bin_width;
+	bin_width=20000;
 	sscanf(argv[3], "%lf", &Xcenter);
 	sscanf(argv[4], "%lf", &Ycenter);
 	TString Align_or_NoAlign = "";
@@ -560,9 +556,9 @@ int main(int argc, char *argv[])
 	EdbPVRec *pvr = new EdbPVRec;
 	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "1");
 
-	npl = pvr->Npatterns();
-	int plMin = pvr->GetPatternByPID(0)->Plate();
-	int plMax = plMin + npl -1;
+	nPID = pvr->Npatterns();
+	int plMin = pvr->GetPattern(0)->Plate();
+	int plMax = pvr->GetPattern(nPID-1)->Plate();
 
 	TObjArray *tracks = pvr->GetTracks();
 	int ntrk = tracks->GetEntriesFast();
@@ -583,7 +579,7 @@ int main(int argc, char *argv[])
 	TObjString *info = new TObjString(Form("plMin=%d, plMax=%d, Xcenter=%f, Ycenter=%f", plMin, plMax, Xcenter, Ycenter));
 	tree->GetUserInfo()->Add(info);
 
-	calc_dxy(pvr,tree,ntrk,Xcenter,Ycenter);
+	calc_dxy(pvr,tree,ntrk,Xcenter,Ycenter,bin_width);
 	// Ntuple for deltaXY
 	// TFile fout(Form("deltaXY%s_nt_reconnected_%.0fbinwidth_func2_t1.root", module,bin_width), "recreate");
 	// TFile fout(Form("deltaXY/nt_aligntfd_NAlign_%.0f_%.0f.root",Xcenter,Ycenter), "recreate");
