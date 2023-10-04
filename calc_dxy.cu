@@ -18,10 +18,6 @@
 const int NPIDMAX=800;
 TObjArray *gTracks;
 TVirtualFitter *gMinuit;
-int gpidMax;
-int gpidMin;
-int gpidcutntrk;
-int gflag_chi2dis;
 float robustfactor;
 double p[NPIDMAX*2] ={};
 int nPID;
@@ -174,11 +170,6 @@ void fitfuncRobust(Int_t &npar, Double_t *grad, Double_t &fval, Double_t *p, Int
 	// check if kernel execution generated and error
 	getLastCudaError("lsm Kernel execution failed");
 	
-	/*if(ncall==0){
-		checkCudaErrors( cudaMemcpy( h_tracks, d_tracks, sizeof(cudaTrack)*ntrk, cudaMemcpyDeviceToHost) );
-		printf("h_track %f %f %f %f %f\n", h_tracks[0].x, h_tracks[0].y, h_tracks[0].z, h_tracks[0].tx,  h_tracks[0].ty);
-	}*/
-	
 	calc_chi2_kernel<<< blocks, threads >>> (ntrk, d_tracks, d_params, d_chi2);
 	cudaDeviceSynchronize();
 	getLastCudaError("calc chi2 Kernel execution failed");
@@ -192,14 +183,15 @@ void fitfuncRobust(Int_t &npar, Double_t *grad, Double_t &fval, Double_t *p, Int
 	{
 		delta2 += h_chi2[i];
 	}
-	double lambda = 0.1;
 	
 	//regularization
-	/*for(int i=0;i<nPID*2)
-	{
-		delta2+=lambda*p[i]*p[i]; //L2 regularization
-		// delta2+=lambda*abs(p[i]); //L1 regularization
-	}*/
+	// double lambda = 0.1;
+	// for(int i=0;i<nPID*2)
+	// {
+	// 	delta2+=lambda*p[i]*p[i]; //L2 regularization
+	// 	// delta2+=lambda*abs(p[i]); //L1 regularization
+	// }
+
 	fval = delta2;
 	if(ncall%1000==0) {
 		printf("ncall=%d fval = %lf ", ncall, fval);
@@ -282,8 +274,6 @@ void calc_align_par(TObjArray *tracks,double iX, double iY, double bin_width, in
 	// minimize
 	arglist[0] = 200000; // number of function calls
 	arglist[1] = 0.001; // tolerance
-	gpidcutntrk = 0;
-	gflag_chi2dis = 0;
 	gMinuit->SetMaxIterations( 10000 );
 	ncall =0;
 	printf("Aligning iX = %.0f, iY = %.0f, ntrk = %d, robustfactor = %.1f\n",iX,iY,ntrk,robustfactor);
@@ -361,7 +351,7 @@ void apply_align(EdbTrackP *t, double iX, double iY,double bin_width)
 int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter, double bin_width)
 {
 	
-	double deltaX, deltaY, tx, ty, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
+	double deltaX, deltaY, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
 	int plate, cross_the_line,trid,nseg;
 	tree->Branch("deltaX", &deltaX);
 	tree->Branch("deltaY", &deltaY);
@@ -376,15 +366,10 @@ int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter
 	tree->Branch("trid", &trid);
 	tree->Branch("nseg", &nseg);
 	double tx3;
-	double stx;
 	double ty3;
-	double sty;
 	// Loop over the tracks
 	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
-
-		stx = 0.;
-		sty = 0.;
 		EdbTrackP *t = pvr->GetTrack(itrk);
 		if (abs(t->TX() + 0.01) >= 0.01 || abs(t->TY() - 0.004) >= 0.01 || t->N() < 5)
 			continue;
@@ -393,17 +378,7 @@ int calc_dxy(EdbPVRec *pvr,TTree *tree, int ntrk, double Xcenter, double Ycenter
 		nseg = t->N();
 		TGraph grX;
 		TGraph grY;
-		int pl;
-		int plold = 10000;
-		int consecutive_seg = 0;
 
-		std::vector<double> vx(nseg);
-		std::vector<double> vy(nseg);
-		std::vector<double> vz(nseg);
-		std::vector<double> vtx(nseg);
-		std::vector<double> vty(nseg);
-
-		double x3, y3, z3;
 		for(int iPID=2;iPID<nPID-2;iPID++)
 		{
 			int count=0;
