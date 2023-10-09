@@ -22,7 +22,6 @@ int main(int argc, char *argv[])
 	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "1");
 
 	TObjArray *tracks = pvr->GetTracks();
-	double test_x1 = pvr->GetTrack(10)->GetSegment(1)->X();
 	int ntrk = tracks->GetEntriesFast();
 	
 	if (ntrk == 0)
@@ -31,11 +30,10 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	
-	FnuDivideAlign da;
-	da.SetRobustFactor(robustfactor);
-	da.dedicated_align(pvr, Xcenter, Ycenter);
-	double test_x2 = pvr->GetTrack(10)->GetSegment(1)->X();
-	printf("%f %f\n",test_x1,test_x2);
-	da.WriteAlignPar("alignPar_test.root");
+	FnuDivideAlign align;
+	align.SetRobustFactor(robustfactor);
+	align.SetBinWidth(bin_width);
+	align.dedicated_align(pvr, Xcenter, Ycenter);
+	align.WriteAlignPar("alignPar_"+title + ".root");
     return 0;
 }
