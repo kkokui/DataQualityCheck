@@ -1,5 +1,5 @@
 #include "FnuDivideAlign.h"
-
+#include <EdbDataSet.h>
 int main(int argc, char *argv[])
 {
 	if(argc<7)
@@ -22,6 +22,7 @@ int main(int argc, char *argv[])
 	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "1");
 
 	TObjArray *tracks = pvr->GetTracks();
+	int nPatterns = pvr->Npatterns();
 	int ntrk = tracks->GetEntriesFast();
 	
 	if (ntrk == 0)
@@ -30,10 +31,17 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	
+	EdbTrackP *t0 = (EdbTrackP*)tracks->At(0);
+	t0->PrintNice();
+
 	FnuDivideAlign align;
 	align.SetRobustFactor(robustfactor);
 	align.SetBinWidth(bin_width);
-	align.dedicated_align(pvr, Xcenter, Ycenter);
+	align.dedicated_align(tracks, Xcenter, Ycenter,nPatterns);
 	align.WriteAlignPar("alignPar_"+title + ".root");
-    return 0;
+
+	// EdbTrackP *t0 = (EdbTrackP *)tracks->At(10);
+	t0->PrintNice();
+
+	return 0;
 }

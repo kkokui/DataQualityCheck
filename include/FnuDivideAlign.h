@@ -1,8 +1,7 @@
-#include <stdio.h>
-
-#include <EdbDataSet.h>
 #include <TVirtualFitter.h>
-
+#include <TObjArray.h>
+#include <EdbPattern.h>
+// #include <EdbDataSet.h>
 struct cudaSegment{
 	int flag, pid;
 	float x,y,z;
@@ -18,7 +17,6 @@ struct cudaTrack{
 
 class FnuDivideAlign {
     private:
-        EdbPVRec *pvr;
         double binWidth;
         TTree *alignPar;
 
@@ -40,6 +38,6 @@ class FnuDivideAlign {
         void calc_align_par(TObjArray *tracks,double iX, double iY, int fixflag);
         int count_passed_seg(EdbTrackP *t, double iX, double iY);
         void apply_align(EdbTrackP *t, double iX, double iY);
-        int dedicated_align(EdbPVRec *pvr,double Xcenter, double Ycenter);
+        int dedicated_align(TObjArray *tracks,double Xcenter, double Ycenter,int nPatterns);
         void WriteAlignPar(TString filename);
 };

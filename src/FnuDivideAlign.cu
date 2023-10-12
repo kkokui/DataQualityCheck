@@ -1,9 +1,12 @@
 #include "FnuDivideAlign.h"
 
-#include <EdbDataSet.h>
-#include <TObjArray.h>
-#include <TVirtualFitter.h>
-#include <TMath.h>
+#include <stdio.h>
+// #include <EdbDataSet.h>
+#include <EdbPattern.h>
+// #include <TObjArray.h>
+#include <TFile.h>
+// #include <TVirtualFitter.h>
+// #include <TMath.h>
 
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
@@ -139,6 +142,7 @@ __global__ void calc_chi2_kernel(int n, cudaTrack* d_trk, double *p, float *d_ch
 
 
 void fitfuncRobust(Int_t &npar, Double_t *grad, Double_t &fval, Double_t *p, Int_t iflag)
+// void fitfuncRobust(int &npar, double *grad, double &fval, double *p, int iflag)
 {
 	
 	double delta2 = 0.0;
@@ -148,6 +152,7 @@ void fitfuncRobust(Int_t &npar, Double_t *grad, Double_t &fval, Double_t *p, Int
 	checkCudaErrors( cudaMemcpy( d_params, h_params, sizeof(double)*NPIDMAX*2, cudaMemcpyHostToDevice) );
 	
 	int ntrk = gTracks->GetEntriesFast();
+	// int ntrk = 10;
 	int numthread = 512;
 	int numblock = (ntrk + numthread -1)/numthread;
 	dim3 threads(numthread, 1, 1);
@@ -310,6 +315,7 @@ int FnuDivideAlign::count_passed_seg(EdbTrackP *t, double iX, double iY)
 	}
 	return count;
 }
+
 void FnuDivideAlign::apply_align(EdbTrackP *t, double iX, double iY)
 {
 	for (int iseg = 0; iseg < t->N(); iseg++)
@@ -325,12 +331,9 @@ void FnuDivideAlign::apply_align(EdbTrackP *t, double iX, double iY)
 	}
 }
 
-int FnuDivideAlign::dedicated_align(EdbPVRec *pvr,double Xcenter, double Ycenter)
+int FnuDivideAlign::dedicated_align(TObjArray *tracks,double Xcenter, double Ycenter,int nPatterns)
 {
-	TObjArray *tracks = pvr->GetTracks();
-	nPID = pvr->Npatterns();
-	int plMin = pvr->GetPattern(0)->Plate();
-	int plMax = pvr->GetPattern(nPID-1)->Plate();
+	nPID = nPatterns;
 	gMinuit = TVirtualFitter::Fitter(0, 300);
 	alignPar = new TTree("alignPar","alignPar");
 	double iX, iY, shiftX, shiftY;
@@ -364,7 +367,7 @@ int FnuDivideAlign::dedicated_align(EdbPVRec *pvr,double Xcenter, double Ycenter
 			// calculate the alignment parameters several times.
 			for (int j = 0; j < 1; j++)
 			{
-				calc_align_par(tracks2,iX,iY,0); //4th is fixflag
+				calc_align_par(tracks2, iX, iY, 0); // 4th is fixflag
 			}
 			
 			for(pid=0;pid<nPID;pid++)
