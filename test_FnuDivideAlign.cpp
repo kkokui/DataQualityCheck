@@ -37,10 +37,9 @@ int main(int argc, char *argv[])
 	FnuDivideAlign align;
 	align.SetRobustFactor(robustfactor);
 	align.SetBinWidth(bin_width);
-	align.dedicated_align(tracks, Xcenter, Ycenter,nPatterns);
+	align.Align(tracks, Xcenter, Ycenter,nPatterns);
 	align.WriteAlignPar("alignPar_"+title + ".root");
 
-	// EdbTrackP *t0 = (EdbTrackP *)tracks->At(10);
 	t0->PrintNice();
 
 	return 0;
