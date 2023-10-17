@@ -13,6 +13,9 @@
 #include <TSystem.h>
 #include <TLegend.h>
 #include <TMultiGraph.h>
+#include <TEventList.h>
+double sigmaX, sigmaY, meanX, meanY;
+int entries, pl;
 
 FnuQualityCheck::FnuQualityCheck(TString ititle)
 {
@@ -23,48 +26,77 @@ FnuQualityCheck::FnuQualityCheck(TString ititle)
 FnuQualityCheck::~FnuQualityCheck()
 {
 }
+// void FnuQualityCheck::CalcDeltaXYFromRootFile(TString fname, double Xcenter, double Ycenter, TCut cut,double bin_width)
+// {
+// 	TFile fin(fname);
+// 	TTree *tracks = (TTree*)fin.Get("tracks");
+// 	tracks->Draw(">>elist",cut);
+// 	TEventList *list = (TEventList*)gDirectory->Get("elist");
+// 	nPID = tracks->GetMaximum("s.ePID")+1;
+// 	// int plMin = deltaXY->GetMinimum("pl");
+// 	// int plMax = deltaXY->GetMaximum("pl");
+// 	deltaXY = new TTree("deltaXY", "deltaXY");
+// 	double deltaX, deltaY, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
+// 	int plate, cross_the_line, trid, nseg;
+// 	deltaXY->Branch("deltaX", &deltaX);
+// 	deltaXY->Branch("deltaY", &deltaY);
+// 	deltaXY->Branch("deltaTX", &deltaTX);
+// 	deltaXY->Branch("deltaTY", &deltaTY);
+// 	deltaXY->Branch("x", &x_t);
+// 	deltaXY->Branch("y", &y_t);
+// 	deltaXY->Branch("slopeX", &slopeX);
+// 	deltaXY->Branch("slopeY", &slopeY);
+// 	deltaXY->Branch("pl", &plate);
+// 	deltaXY->Branch("cross_the_line", &cross_the_line);
+// 	deltaXY->Branch("trid", &trid);
+// 	deltaXY->Branch("nseg", &nseg);
+// 	double tx3;
+// 	double ty3;
+// 	TBranch *bX = tracks->GetBranch("s.eX");
+// 	TBranch *bY = tracks->GetBranch("s.eY");
+// 	TBranch *bZ = tracks->GetBranch("s.eZ");
+// 	TBranch *bTX = tracks->GetBranch("s.eTX");
+// 	TBranch *bTY = tracks->GetBranch("s.eTY");
+// 	TBranch *bnseg = tracks->GetBranch("nseg");
+// 	for(int itrk = 0;itrk<list->GetN();itrk++)
+// 	{
+// 		int entr = list->GetEntry(itrk);
 
+// 	}
+// }
 void FnuQualityCheck::CalcDeltaXY(EdbPVRec *pvr, int ntrk, double Xcenter, double Ycenter, double bin_width)
 {
 	nPID = pvr->Npatterns();
 	plMin = pvr->GetPattern(0)->Plate();
 	plMax = pvr->GetPattern(nPID - 1)->Plate();
 	deltaXY = new TTree("deltaXY", "deltaXY");
-	// gDirectory->ls();
-	double deltaX, deltaY, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
-	int plate, cross_the_line, trid, nseg;
-	deltaXY->Branch("deltaX", &deltaX);
-	deltaXY->Branch("deltaY", &deltaY);
-	deltaXY->Branch("deltaTX", &deltaTX);
-	deltaXY->Branch("deltaTY", &deltaTY);
-	deltaXY->Branch("x", &x_t);
-	deltaXY->Branch("y", &y_t);
-	deltaXY->Branch("slopeX", &slopeX);
-	deltaXY->Branch("slopeY", &slopeY);
-	deltaXY->Branch("pl", &plate);
-	deltaXY->Branch("cross_the_line", &cross_the_line);
-	deltaXY->Branch("trid", &trid);
-	deltaXY->Branch("nseg", &nseg);
+	deltaXY->Branch("deltaX", &deltaXV);
+	deltaXY->Branch("deltaY", &deltaYV);
+	deltaXY->Branch("deltaTX", &deltaTXV);
+	deltaXY->Branch("deltaTY", &deltaTYV);
+	deltaXY->Branch("x", &xV);
+	deltaXY->Branch("y", &yV);
+	deltaXY->Branch("slopeX", &slopeXV);
+	deltaXY->Branch("slopeY", &slopeYV);
+	deltaXY->Branch("plate", &plate);
+	deltaXY->Branch("cross_the_line", &crossTheLineV);
+	deltaXY->Branch("trid", &tridV);
+	deltaXY->Branch("nseg", &nsegV);
 	double tx3;
 	double ty3;
 	// Loop over the tracks
-	for (int itrk = 0; itrk < ntrk; itrk++)
+	for (int iPID = 2; iPID < nPID - 2; iPID++)
 	{
-		EdbTrackP *t = pvr->GetTrack(itrk);
-		if (abs(t->TX() + 0.01) >= 0.01 || abs(t->TY() - 0.004) >= 0.01 || t->N() < 5)
-			continue;
-
-		trid = t->ID();
-		nseg = t->N();
-		TGraph grX;
-		TGraph grY;
-
-		for (int iPID = 2; iPID < nPID - 2; iPID++)
+		for (int itrk = 0; itrk < ntrk; itrk++)
 		{
+			EdbTrackP *t = pvr->GetTrack(itrk);
+			if (abs(t->TX() + 0.01) >= 0.01 || abs(t->TY() - 0.004) >= 0.01 || t->N() < 5)
+				continue;
 			int count = 0;
 			double x[5];
 			double y[5];
 			double z[5];
+			nseg = t->N();
 			for (int iseg = 0; iseg < nseg; iseg++)
 			{
 				EdbSegP *s = t->GetSegment(iseg);
@@ -83,10 +115,11 @@ void FnuQualityCheck::CalcDeltaXY(EdbPVRec *pvr, int ntrk, double Xcenter, doubl
 					tx3 = s->TX();
 					ty3 = s->TY();
 				}
+				if (count == 5)
+					break;
 			}
 			if (count != 5)
 				continue;
-			// printf("%d\n",grX.GetN());
 			int areaX[5];
 			int areaY[5];
 			for (int ipoint = 0; ipoint < 5; ipoint++)
@@ -123,86 +156,87 @@ void FnuQualityCheck::CalcDeltaXY(EdbPVRec *pvr, int ntrk, double Xcenter, doubl
 			double y3fit = a0 + slopeY * z[2];
 
 			// Calculate delta X and delta Y.
-			deltaX = x[2] - x3fit;
-			deltaY = y[2] - y3fit;
-			deltaTX = tx3 - slopeX;
-			deltaTY = ty3 - slopeY;
-			x_t = t->X();
-			y_t = t->Y();
-			plate = pvr->GetPattern(iPID)->Plate();
-			deltaXY->Fill();
+			deltaXV.push_back(x[2] - x3fit);
+			deltaYV.push_back(y[2] - y3fit);
+			deltaTXV.push_back(tx3 - slopeX);
+			deltaTYV.push_back(ty3 - slopeY);
+			xV.push_back(t->X());
+			yV.push_back(t->Y());
+			slopeXV.push_back(slopeX);
+			slopeYV.push_back(slopeY);
+			crossTheLineV.push_back(cross_the_line);
+			tridV.push_back(t->ID());
+			nsegV.push_back(nseg);
 		}
+		plate = pvr->GetPattern(iPID)->Plate();
+		deltaXY->Fill();
 	}
 }
 
 void FnuQualityCheck::FitDeltaXY()
 {
-	// deltaXY->Show(1);
 	double angcut = 0.01;
-	// file->Delete("deltaXY");
 	posResPar = new TTree("posResPar", "posResPar");
-	// file->Add(posResPar);
-	// gDirectory->ls();
-	double sigmaX, sigmaY, meanX, meanY;
-	int entries, pl;
+
 	posResPar->Branch("sigmaX", &sigmaX);
 	posResPar->Branch("sigmaY", &sigmaY);
 	posResPar->Branch("meanX", &meanX);
 	posResPar->Branch("meanY", &meanY);
 	posResPar->Branch("entries", &entries);
-	posResPar->Branch("pl", &pl);
+	posResPar->Branch("plate", &plate);
+
+	hdeltaX = new TH1D("hdeltaX", "hdeltaX", 100, -2, 2);
+	hdeltaY = new TH1D("hdeltaY", "hdeltaY", 100, -2, 2);
+	htree = new TTree("htree", "htree");
+	htree->Branch("hdeltaX", &hdeltaX);
+	htree->Branch("hdeltaY", &hdeltaY);
+	htree->Branch("plate", &plate);
+
 	TF1 *f = new TF1("gaus", "gaus", -2, 2);
 	f->SetParLimits(5, 0, 0.4);
 	gStyle->SetOptFit();
-	TCanvas *c1 = new TCanvas();
-	c1->Print("pos_res/deltaxy_" + title + ".pdf[");
-
-	TH1D *deltax = new TH1D("deltax", "deltax", 100, -2, 2);
-	TH1D *deltay = new TH1D("deltay", "deltay", 100, -2, 2);
 
 	// int plMin = deltaXY->GetMinimum("pl");
 	// int plMax = deltaXY->GetMaximum("pl");
-
-	for (int ipl = plMin; ipl <= plMax; ipl++)
+	TBranch *deltaXB = deltaXY->GetBranch("deltaX");
+	TBranch *deltaYB = deltaXY->GetBranch("deltaY");
+	TBranch *slopeXB = deltaXY->GetBranch("slopeX");
+	TBranch *slopeYB = deltaXY->GetBranch("slopeY");
+	TBranch *plateB = deltaXY->GetBranch("plate");
+	for (int ient = 0; ient < deltaXY->GetEntriesFast(); ient++)
 	{
-		if (deltaXY->GetEntries(Form("pl==%d", ipl)) == 0)
-			continue;
-		deltaXY->Draw("deltaX>>htempX", Form("abs(slopeX+0.01)<%f&&abs(slopeY)<%f&&pl==%d", angcut, angcut, ipl));
-		TH1D *htempX = (TH1D *)gDirectory->Get("htempX");
-		meanX = htempX->GetMean();
-		delete htempX;
-		deltaXY->Draw("deltaX>>deltax", Form("abs(deltaY)<=2&&abs(deltaX)<=2&&abs(slopeX+0.01)<%f&&abs(slopeY)<%f&&pl==%d", angcut, angcut, ipl));
-		deltax->SetTitle(Form("pl%d %s;deltaX (#mum);", ipl, title.Data()));
+		deltaXB->GetEntry(ient);
+		deltaYB->GetEntry(ient);
+		slopeXB->GetEntry(ient);
+		slopeYB->GetEntry(ient);
+		plateB->GetEntry(ient);
 
+		for (int i = 0; i < deltaXV.size(); i++)
+		{
+			if (fabs(deltaYV.at(i)) <= 2 && fabs(deltaXV.at(i)) <= 2 && fabs(slopeXV.at(i) + 0.01) < angcut && fabs(slopeYV.at(i)) < angcut)
+			{
+				hdeltaX->Fill(deltaXV.at(i));
+				hdeltaY->Fill(deltaYV.at(i));
+			}
+		}
+		hdeltaX->SetTitle(Form("pl%d %s;deltaX (#mum);", plate, title.Data()));
+		hdeltaY->SetTitle(Form("pl%d %s;deltaY (#mum);", plate, title.Data()));
+		hdeltaX->Draw();
 		f->SetParameters(1000, 0, 0.2);
-
-		deltax->Fit(f, "Q", "", -0.5, 0.5);
+		hdeltaX->Fit(f, "Q", "", -0.5, 0.5);
+		meanX = hdeltaX->GetMean();
+		entries = hdeltaX->GetEntries();
 		sigmaX = f->GetParameter(2);
-
-		c1->Print("pos_res/deltaxy_" + title + ".pdf");
-		deltaXY->Draw("deltaY>>htempY", Form("abs(slopeX+0.01)<%f&&abs(slopeY)<%f&&pl==%d", angcut, angcut, ipl));
-		TH1D *htempY = (TH1D *)gDirectory->Get("htempY");
-		meanY = htempY->GetMean();
-		entries = htempY->GetEntries();
-		delete htempY;
-		deltaXY->Draw("deltaY>>deltay", Form("abs(deltaY)<=2&&abs(deltaX)<=2&&abs(slopeX+0.01)<%f&&abs(slopeY)<%f&&pl==%d", angcut, angcut, ipl));
-		deltay->SetTitle(Form("pl%d %s;deltaY (#mum);", ipl, title.Data()));
+		hdeltaY->Draw();
 		f->SetParameters(1000, 0, 0.2);
-		deltay->Fit(f, "Q", "", -0.5, 0.5);
+		hdeltaY->Fit(f, "Q", "", -0.5, 0.5);
+		meanY = hdeltaY->GetMean();
 		sigmaY = f->GetParameter(2);
-		c1->Print("pos_res/deltaxy_" + title + ".pdf");
-		pl = ipl;
+		htree->Fill();
 		posResPar->Fill();
-		printf("Histograms for plate %d have been printed\n", ipl);
+		hdeltaX->Reset();
+		hdeltaY->Reset();
 	}
-	c1->Print("pos_res/deltaxy_" + title + ".pdf]");
-	// posResPar->Write();
-
-	// posResPar->Draw("meanY:pl");
-	// c1->Print("pos_res/test.pdf");
-	// posResPar->Show(1);
-	delete deltax;
-	delete deltay;
 }
 
 void FnuQualityCheck::lsm(double x[], double y[], int N, double &a0, double &a1)
@@ -228,36 +262,16 @@ void FnuQualityCheck::PlotPosRes()
 	// gSystem->Load("libTree");
 	// int plMax = posResPar->GetMaximum("pl");
 	// int plMin = posResPar->GetMinimum("pl");
-	TCanvas *c1 = new TCanvas("test");
+	TCanvas *c1 = new TCanvas();
 	c1->Print("pos_res/sigmaPar_" + title + ".pdf[");
-	// gDirectory->ls();
-	// posResPar->BranchRef();
-	// TFile *fout1 = new TFile("pos_res/sigmaPar_" + title + ".root");
-	// gDirectory->ls();
-	// posResPar = (TTree *)gDirectory->Get("posResPar");
-
-	// delete deltaXY;
-	// meanY and meanX : plate
-	// posResPar->Show(1);
-	// posResPar->Print();
-	posResPar->Draw("meanY:pl");
-	// posResPar->GetV2();
-	double *testv = posResPar->GetV1();
-
-	// std::cout << testx[0] << std::endl;
-	// std::cout << posResPar->GetV2()[0] << std::endl;
-	TH1D *htest = new TH1D("name", "test", 100, 0, 100);
-	// htest->Fill(50);
-	// htest->Draw();
-	// c1->Print("pos_res/sigmaPar_" + title + ".pdf");
+	posResPar->Draw("meanY:plate");
 	int N = posResPar->GetSelectedRows();
 	TGraph *grY = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
 	c1->SetGridx(1);
-	// printf("debug\n");
 	grY->SetMarkerStyle(20);
 	grY->SetMarkerColor(kBlue);
 	grY->SetTitle("meanY");
-	posResPar->Draw("meanX:pl");
+	posResPar->Draw("meanX:plate");
 	N = posResPar->GetSelectedRows();
 	TGraph *grX = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
 	grX->SetMarkerStyle(20);
@@ -269,22 +283,21 @@ void FnuQualityCheck::PlotPosRes()
 	TH2D *fr = new TH2D("fr", "mean:plate (" + title + ");plate;mean (#mum)", 10, plMin, plMax, 10, -0.26, 0.26);
 	// fr->Draw();
 	fr->SetStats(0);
-	mg->Draw("p");
+	mg->Draw("ap");
 	TLegend *leg = new TLegend(0.9, 0.8, 1.0, 0.9);
 	leg->AddEntry(grX, "", "p");
 	leg->AddEntry(grY, "", "p");
 	leg->Draw();
 	// htemp->SetTitle("meanY:meanX;meanX (#mum);meanY (#mum)");
 	c1->Print("pos_res/sigmaPar_" + title + ".pdf");
+	c1->Print("pos_res/sigmaPar_" + title + ".C");
 	// sigmaX
 	c1->SetGridx(0);
 	posResPar->Draw("sigmaX>>h1(100,0,1)", "abs(meanX)<100&&entries>0");
 	TH1F *h1 = (TH1F *)gDirectory->Get("h1");
-	// c1->Print(Form("pos_res/sigmaPar_" + title + ".pdf"));
 	// sigmaY
 	posResPar->Draw("sigmaY>>h2(100,0,1)", "abs(meanY)<100&&entries>0");
 	TH1F *h2 = (TH1F *)gDirectory->Get("h2");
-	// c1->Print(Form("pos_res/sigmaPar_" + title + ".pdf"));
 	// merge sigmaX and sigmaY
 	TList *l = new TList;
 	l->Add(h1);
@@ -295,13 +308,13 @@ void FnuQualityCheck::PlotPosRes()
 	c1->Print("pos_res/sigmaPar_" + title + ".pdf");
 	// sigmaX and sigmaY:pl
 	c1->SetGridx(1);
-	posResPar->Draw("sigmaX:pl");
+	posResPar->Draw("sigmaX:plate");
 	N = posResPar->GetSelectedRows();
 	TGraph *grsigX = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
 	grsigX->SetMarkerStyle(20);
 	grsigX->SetMarkerColor(kRed);
 	grsigX->SetTitle("sigmaX");
-	posResPar->Draw("sigmaY:pl");
+	posResPar->Draw("sigmaY:plate");
 	N = posResPar->GetSelectedRows();
 	TGraph *grsigY = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
 	grsigY->SetMarkerStyle(20);
@@ -313,7 +326,7 @@ void FnuQualityCheck::PlotPosRes()
 	// TH2D *fr = new TH2D("fr",";plate;",10,0,52,10,-1.5,1.5);
 	// fr->Draw();
 	// fr->SetStats(0);
-	mg2->Draw("p");
+	mg2->Draw("ap");
 	TLegend *leg2 = new TLegend(0.9, 0.8, 1.0, 0.9);
 	leg2->AddEntry(grsigX, "", "p");
 	leg2->AddEntry(grsigY, "", "p");
@@ -323,11 +336,30 @@ void FnuQualityCheck::PlotPosRes()
 	c1->Print("pos_res/sigmaPar_" + title + ".pdf");
 	c1->Print("pos_res/sigmaPar_" + title + ".pdf]");
 }
-
+void FnuQualityCheck::PrintDeltaXYHist()
+{
+	TCanvas c;
+	c.Print("pos_res/deltaxy_" + title + ".pdf[");
+	for (int ient = 0; ient < htree->GetEntriesFast(); ient++)
+	{
+		htree->GetEntry(ient);
+		hdeltaX->Draw();
+		c.Print("pos_res/deltaxy_" + title + ".pdf");
+		hdeltaY->Draw();
+		c.Print("pos_res/deltaxy_" + title + ".pdf");
+		printf("Histograms for plate %d have been printed\n", plate);
+	}
+	c.Print("pos_res/deltaxy_" + title + ".pdf]");
+}
 void FnuQualityCheck::WritePosResPar()
 {
-	// TFile *fout1 = new TFile("pos_res/sigmaPar_" + title + ".root", "recreate");
-	// posResPar->Write();
-	// fout1->Close();
-	// posResPar->Show(1);
+	TFile fout("pos_res/sigmaPar_" + title + ".root", "recreate");
+	posResPar->Write();
+	fout.Close();
+}
+void FnuQualityCheck::WriteDeltaXY()
+{
+	TFile fout("deltaXY/tree_" + title + ".root", "recreate");
+	posResPar->Write();
+	fout.Close();
 }

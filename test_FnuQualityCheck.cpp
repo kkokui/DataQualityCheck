@@ -23,8 +23,8 @@ int main(int argc, char *argv[])
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
 	
-	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=5");
-	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
+	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=5");
+	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
 
 	TObjArray *tracks = pvr->GetTracks();
 	int ntrk = tracks->GetEntriesFast();
@@ -37,9 +37,11 @@ int main(int argc, char *argv[])
     FnuQualityCheck qc(title);
 	qc.CalcDeltaXY(pvr,ntrk,Xcenter,Ycenter,bin_width);
     qc.FitDeltaXY();
-    qc.WritePosResPar();
     qc.PlotPosRes();
-	
+	// qc.PrintDeltaXYHist();
+    // qc.WritePosResPar();
+    // qc.WriteDeltaXY();
+
 	return 0;
 	
 }
