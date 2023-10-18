@@ -331,19 +331,17 @@ int FnuDivideAlign::Align(TObjArray *tracks,double Xcenter, double Ycenter,int n
 	nPID = nPatterns;
 	minuit = TVirtualFitter::Fitter(0, nPID*2);
 	alignPar = new TTree("alignPar","alignPar");
-	double iX, iY, shiftX, shiftY;
-	int pid;
-	alignPar->Branch("iX",&iX);
-	alignPar->Branch("iY",&iY);
-	alignPar->Branch("shiftX",&shiftX);
-	alignPar->Branch("shiftY",&shiftY);
-	alignPar->Branch("pid",&pid);
+	alignPar->Branch("iX",&iXBranchValue);
+	alignPar->Branch("iY",&iYBranchValue);
+	alignPar->Branch("shiftX",&shiftXBranchValue);
+	alignPar->Branch("shiftY",&shiftYBranchValue);
+	alignPar->Branch("pid",&pidBranchValue);
 	int ntrk = tracks->GetEntriesFast();
 
 	// Divide the area into binWidth*binWidth mm^2 areas
-	for (iY = Ycenter - rangeXY + binWidth / 2; iY <= Ycenter + rangeXY; iY += binWidth)
+	for (iYBranchValue = Ycenter - rangeXY + binWidth / 2; iYBranchValue <= Ycenter + rangeXY; iYBranchValue += binWidth)
 	{
-		for (iX = Xcenter - rangeXY + binWidth / 2; iX <= Xcenter + rangeXY; iX += binWidth)
+		for (iXBranchValue = Xcenter - rangeXY + binWidth / 2; iXBranchValue <= Xcenter + rangeXY; iXBranchValue += binWidth)
 		{
 			TObjArray *tracks2 = new TObjArray;
 
@@ -354,7 +352,7 @@ int FnuDivideAlign::Align(TObjArray *tracks,double Xcenter, double Ycenter,int n
 				{
 					continue;
 				}
-				if (10 <= CountPassedSeg(t, iX, iY)) //  check if the track passes the area
+				if (10 <= CountPassedSeg(t, iXBranchValue, iYBranchValue)) //  check if the track passes the area
 				{
 					tracks2->Add(t);
 				}
@@ -367,19 +365,19 @@ int FnuDivideAlign::Align(TObjArray *tracks,double Xcenter, double Ycenter,int n
 			// calculate the alignment parameters several times.
 			for (int j = 0; j < 1; j++)
 			{
-				CalcAlignPar(tracks2, iX, iY, 0);
+				CalcAlignPar(tracks2, iXBranchValue, iYBranchValue, 0);
 			}
 			
-			for(pid=0;pid<nPID;pid++)
+			for(pidBranchValue=0;pidBranchValue<nPID;pidBranchValue++)
 			{
-				shiftX = p[pid*2];
-				shiftY = p[pid*2+1];
+				shiftXBranchValue = p[pidBranchValue*2];
+				shiftYBranchValue = p[pidBranchValue*2+1];
 				alignPar->Fill();
 			}
 			for (int itrk = 0; itrk < ntrk; itrk++)
 			{
 				EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
-				ApplyAlign(t, iX, iY);
+				ApplyAlign(t, iXBranchValue, iYBranchValue);
 			}
 			delete tracks2;
 		}

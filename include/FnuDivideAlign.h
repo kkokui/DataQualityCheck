@@ -12,6 +12,9 @@ class FnuDivideAlign {
         double p[NPIDMAX*2];
         int nPID;
         double rangeXY;
+        // values for TTree
+        double iXBranchValue, iYBranchValue, shiftXBranchValue, shiftYBranchValue;
+        int pidBranchValue;
 
     public:
         FnuDivideAlign();
