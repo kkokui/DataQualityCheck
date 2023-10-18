@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 	qc.CalcDeltaXY(pvr,ntrk,Xcenter,Ycenter,bin_width);
     qc.FitDeltaXY();
     qc.PlotPosRes();
-	// qc.PrintDeltaXYHist();
+	qc.PrintDeltaXYHist();
     // qc.WritePosResPar();
     // qc.WriteDeltaXY();
 

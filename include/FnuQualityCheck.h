@@ -14,8 +14,8 @@ class FnuQualityCheck
         int plMax;
         double deltaX, deltaY, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
         int plate, cross_the_line, trid, nseg;
-        std::vector<double> deltaXV, deltaYV, deltaTXV, deltaTYV, xV, yV, slopeXV, slopeYV;
-        std::vector<int> crossTheLineV, tridV, nsegV;
+        std::vector<double> *deltaXV=0, *deltaYV=0, *deltaTXV=0, *deltaTYV=0, *xV=0, *yV=0, *slopeXV=0, *slopeYV=0;
+        std::vector<int> *crossTheLineV=0, *tridV=0, *nsegV=0;
         TH1D *hdeltaX;
         TH1D *hdeltaY;
 
