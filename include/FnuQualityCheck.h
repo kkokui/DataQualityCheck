@@ -13,6 +13,7 @@ class FnuQualityCheck
         double XYrange;
         int plMin;
         int plMax;
+        // variables for TTree
         double deltaX, deltaY, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
         int plate, cross_the_line, trid, nseg;
         std::vector<double> *deltaXV=0, *deltaYV=0, *deltaTXV=0, *deltaTYV=0, *xV=0, *yV=0, *slopeXV=0, *slopeYV=0;
@@ -28,10 +29,12 @@ class FnuQualityCheck
         void CalcDeltaXY(int ntrk, double Xcenter, double Ycenter, double bin_width);
         void FitDeltaXY();
         void CalcLSM(double x[],double y[], int N, double &a0, double &a1);
-        void PlotPosRes();
-        void WritePosResPar();
-        void WriteDeltaXY();
-        void PrintDeltaXYHist();
+        void PlotPosRes(TString filename);
+        void WritePosResPar(TString filename);
+        void WriteDeltaXY(TString filename);
+        void PrintDeltaXYHist(TString filename);
         // methods for efficiency
         void CalcEfficiency();
+        void PrintEfficiency();
+        void WriteEfficiencyTree();
 };

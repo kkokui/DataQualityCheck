@@ -275,13 +275,14 @@ void FnuQualityCheck::CalcLSM(double x[], double y[], int N, double &a0, double 
 	a1 = (A00 * A12 - A01 * A02) / (A00 * A11 - A01 * A01);
 }
 
-void FnuQualityCheck::PlotPosRes()
+void FnuQualityCheck::PlotPosRes(TString filename)
 {
 	// gSystem->Load("libTree");
 	// int plMax = posResPar->GetMaximum("pl");
 	// int plMin = posResPar->GetMinimum("pl");
 	TCanvas *c1 = new TCanvas();
-	c1->Print("pos_res/sigmaPar_" + title + ".pdf[");
+	// c1->Print("pos_res/sigmaPar_" + title + ".pdf[");
+	c1->Print(filename+"[");
 	posResPar->Draw("meanY:plate");
 	int N = posResPar->GetSelectedRows();
 	TGraph *grY = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
@@ -306,8 +307,7 @@ void FnuQualityCheck::PlotPosRes()
 	leg->AddEntry(grX, "", "p");
 	leg->AddEntry(grY, "", "p");
 	leg->Draw();
-	c1->Print("pos_res/sigmaPar_" + title + ".pdf");
-	// c1->Print("pos_res/sigmaPar_" + title + ".C");
+	c1->Print(filename);
 	// sigmaX
 	c1->SetGridx(0);
 	posResPar->Draw("sigmaX>>h1(100,0,1)", "abs(meanX)<100&&entries>0");
@@ -322,7 +322,7 @@ void FnuQualityCheck::PlotPosRes()
 	TH1F *h = new TH1F("Sigma", "position resolution (" + title + ");position resolution (#mum);number of areas", 100, 0, 1);
 	h->Merge(l);
 	h->Draw();
-	c1->Print("pos_res/sigmaPar_" + title + ".pdf");
+	c1->Print(filename);
 	// sigmaX and sigmaY:pl
 	c1->SetGridx(1);
 	posResPar->Draw("sigmaX:plate");
@@ -348,35 +348,41 @@ void FnuQualityCheck::PlotPosRes()
 	leg2->AddEntry(grsigX, "", "p");
 	leg2->AddEntry(grsigY, "", "p");
 	leg2->Draw();
-	c1->Print("pos_res/sigmaPar_" + title + ".pdf");
+	c1->Print(filename);
 	c1->Clear();
-	c1->Print("pos_res/sigmaPar_" + title + ".pdf");
-	c1->Print("pos_res/sigmaPar_" + title + ".pdf]");
+	c1->Print(filename);
+	c1->Print(filename+"]");
 }
-void FnuQualityCheck::PrintDeltaXYHist()
+void FnuQualityCheck::PrintDeltaXYHist(TString filename)
 {
 	TCanvas c;
-	c.Print("pos_res/deltaxy_" + title + ".pdf[");
+	// c.Print("pos_res/deltaxy_" + title + ".pdf[");
+	c.Print(filename+"[");
 	for (int ient = 0; ient < htree->GetEntriesFast(); ient++)
 	{
 		htree->GetEntry(ient);
 		hdeltaX->Draw();
-		c.Print("pos_res/deltaxy_" + title + ".pdf");
+		// c.Print("pos_res/deltaxy_" + title + ".pdf");
+		c.Print(filename);
 		hdeltaY->Draw();
-		c.Print("pos_res/deltaxy_" + title + ".pdf");
+		// c.Print("pos_res/deltaxy_" + title + ".pdf");
+		c.Print(filename);
 		printf("Histograms for plate %d have been printed\n", plate);
 	}
-	c.Print("pos_res/deltaxy_" + title + ".pdf]");
+	// c.Print("pos_res/deltaxy_" + title + ".pdf]");
+	c.Print(filename+"]");
 }
-void FnuQualityCheck::WritePosResPar()
+void FnuQualityCheck::WritePosResPar(TString filename)
 {
-	TFile fout("pos_res/sigmaPar_" + title + ".root", "recreate");
+	// TFile fout("pos_res/sigmaPar_" + title + ".root", "recreate");
+	TFile fout(filename, "recreate");
 	posResPar->Write();
 	fout.Close();
 }
-void FnuQualityCheck::WriteDeltaXY()
+void FnuQualityCheck::WriteDeltaXY(TString filename)
 {
-	TFile fout("deltaXY/tree_" + title + ".root", "recreate");
+	// TFile fout("deltaXY/tree_" + title + ".root", "recreate");
+	TFile fout(filename,"recreate");
 	deltaXY->Write();
 	fout.Close();
 }
@@ -432,16 +438,16 @@ void FnuQualityCheck::CalcEfficiency()
 			{
 				EdbSegP *s = t->GetSegment(iseg);
 
-				if (s->PID() == iPID - 2 || s->PID() == iPID + 2)
+				if (s->PID() == iPID - 2*2 || s->PID() == iPID + 2*2)
 					counts++;
-				if (s->PID() == iPID - 1)
+				if (s->PID() == iPID - 1*2)
 				{
 					x1 = s->X();
 					y1 = s->Y();
 					z1 = s->Z();
 					counts++;
 				}
-				if (s->PID() == iPID + 1)
+				if (s->PID() == iPID + 1*2)
 				{
 					x2 = s->X();
 					y2 = s->Y();
