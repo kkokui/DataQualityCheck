@@ -3,6 +3,7 @@
 class FnuQualityCheck
 {
     private:
+        EdbPVRec *pvr;
         TFile *file;
         TTree *deltaXY;
         TTree *posResPar;
@@ -20,14 +21,17 @@ class FnuQualityCheck
         TH1D *hdeltaY;
 
     public:
-        FnuQualityCheck(TString ititle);
+        FnuQualityCheck(EdbPVRec *pvr, TString title);
         ~FnuQualityCheck();
+        // methods for position resolution
         // void CalcDeltaXYFromRootFile(TString fname = "linked_tracks.root", double Xcenter, double Ycenter, TCut cut = "nseg>=5", double bin_width);
-        void CalcDeltaXY(EdbPVRec *pvr, int ntrk, double Xcenter, double Ycenter, double bin_width);
+        void CalcDeltaXY(int ntrk, double Xcenter, double Ycenter, double bin_width);
         void FitDeltaXY();
-        void lsm(double x[],double y[], int N, double &a0, double &a1);
+        void CalcLSM(double x[],double y[], int N, double &a0, double &a1);
         void PlotPosRes();
         void WritePosResPar();
         void WriteDeltaXY();
         void PrintDeltaXYHist();
+        // methods for efficiency
+        void CalcEfficiency();
 };
