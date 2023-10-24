@@ -27,6 +27,7 @@ FnuQualityCheck::FnuQualityCheck(EdbPVRec *pvr, TString title)
 	nPID = pvr->Npatterns();
 	plMin = pvr->GetPattern(0)->Plate();
 	plMax = pvr->GetPattern(nPID - 1)->Plate();
+	ntrk = pvr->Ntracks();
 }
 
 FnuQualityCheck::~FnuQualityCheck()
@@ -70,7 +71,7 @@ FnuQualityCheck::~FnuQualityCheck()
 
 // 	}
 // }
-void FnuQualityCheck::CalcDeltaXY(int ntrk, double Xcenter, double Ycenter, double bin_width)
+void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_width)
 {
 	deltaXY = new TTree("deltaXY", "deltaXY");
 	deltaXY->Branch("deltaX", &deltaXV);
@@ -389,25 +390,17 @@ void FnuQualityCheck::WriteDeltaXY(TString filename)
 
 void FnuQualityCheck::CalcEfficiency()
 {
-	TEfficiency *pEff_angle = 0;
-	TEfficiency *pEff_plate = 0;
+	double bins_angle[] = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
+	int nbins_angle = 26;
+	double bins_TXTY[] = {-0.5, -0.45, -0.4, -0.35, -0.3, -0.25, -0.2, -0.19, -0.18, -0.17, -0.16, -0.15, -0.14, -0.13, -0.12, -0.11, -0.10, -0.09, -0.08, -0.07, -0.06, -0.05, -0.04, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
+	int nbins_TXTY = 52;
 
-	int ntrk = pvr->Ntracks();
-	double bins[] = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
-	int nbins = 26;
-	double bins_pm[] = {-0.5, -0.45, -0.4, -0.35, -0.3, -0.25, -0.2, -0.19, -0.18, -0.17, -0.16, -0.15, -0.14, -0.13, -0.12, -0.11, -0.10, -0.09, -0.08, -0.07, -0.06, -0.05, -0.04, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
-	int nbins_pm = 52;
+	TEfficiency *pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta", title.Data()), nbins_angle, bins_angle);
+	TEfficiency *pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate", title.Data()), plMax - plMin, plMin, plMax);
+	TEfficiency *pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
+	TEfficiency *pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
 
-	TH1D *h_angle_total = new TH1D("hist_angle_total", title + ";tan#theta;", nbins, bins);
-	TH1D *h_angle_passed = new TH1D("hist_angle_passed", title + ";tan#theta;", nbins, bins);
-	TH1D *h_plate_total = new TH1D("hist_plate_total", title + ";plate;", plMax - plMin, plMin, plMax);
-	TH1D *h_plate_passed = new TH1D("hist_plate_passed", title + ";plate;", plMax - plMin, plMin, plMax);
-	TH1D *h_TX_total = new TH1D("hist_TX_total", title + ";tan#theta;", nbins_pm, bins_pm);
-	TH1D *h_TX_passed = new TH1D("hist_TX_passed", title + ";tan#theta;", nbins_pm, bins_pm);
-	TH1D *h_TY_total = new TH1D("hist_TY_total", title + ";tan#theta;", nbins_pm, bins_pm);
-	TH1D *h_TY_passed = new TH1D("hist_TY_passed", title + ";tan#theta;", nbins_pm, bins_pm);
-
-	TFile treefout(Form("efficiency_output/tree_OtherInfo_%s.root", title.Data()), "recreate"); // to check the distribution of passed segments
+	TFile treefout(Form("efficiency_output/tree_%s.root", title.Data()), "recreate");
 	TTree *tree = new TTree("tree", "efficiency infomation");
 	int trackID, pl, nseg, W, hitsOnThePlate;
 	double x, y, angle, TX, TY;
@@ -465,17 +458,10 @@ void FnuQualityCheck::CalcEfficiency()
 				TX = (x2 - x1) / (z2 - z1);
 				TY = (y2 - y1) / (z2 - z1);
 				angle = sqrt(TX * TX + TY * TY);
-				h_angle_total->Fill(angle);
-				h_plate_total->Fill(iplate);
-				h_TX_total->Fill(TX);
-				h_TY_total->Fill(TY);
-				if (hitsOnThePlate == 1)
-				{
-					h_angle_passed->Fill(angle);
-					h_plate_passed->Fill(iplate);
-					h_TX_passed->Fill(TX);
-					h_TY_passed->Fill(TY);
-				}
+				pEff_angle->Fill(hitsOnThePlate,angle);
+				pEff_plate->Fill(hitsOnThePlate,iplate);
+				pEff_TX->Fill(hitsOnThePlate,TX);
+				pEff_TY->Fill(hitsOnThePlate,TY);
 				trackID = t->ID();
 				x = (x1 + x2) / 2;
 				y = (y1 + y2) / 2;
@@ -487,53 +473,45 @@ void FnuQualityCheck::CalcEfficiency()
 	TCanvas *c = new TCanvas();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf[", title.Data()));
 	c->SetLogy(1);
-	h_angle_total->Draw();
+	pEff_angle->GetCopyTotalHisto()->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
 	c->SetLogy(0);
-	pEff_angle = new TEfficiency(*h_angle_passed, *h_angle_total);
-	pEff_angle->SetTitle(Form("Efficiency for each angle (%s);tan#theta;efficiency", title.Data()));
 	pEff_angle->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
-	h_plate_total->Draw();
+	pEff_plate->GetCopyTotalHisto()->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
-	pEff_plate = new TEfficiency(*h_plate_passed, *h_plate_total);
-	pEff_plate->SetTitle(Form("Efficiency for each plate (%s);plate;efficiency", title.Data()));
 	pEff_plate->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
 
 	c->SetLogy(1);
-	h_TX_total->Draw();
+	pEff_TX->GetCopyTotalHisto()->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
 	c->SetLogy(0);
-	TGraphAsymmErrors *grEff_TX = new TGraphAsymmErrors(h_TX_passed, h_TX_total);
-	grEff_TX->SetTitle(Form("Efficiency for each TX (%s);tan#theta;efficiency", title.Data()));
-	grEff_TX->Draw("ap");
+	pEff_TX->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
 
 	c->SetLogy(1);
-	h_TY_total->Draw();
+	pEff_TY->GetCopyTotalHisto()->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
 	c->SetLogy(0);
-	TGraphAsymmErrors *grEff_TY = new TGraphAsymmErrors(h_TY_passed, h_TY_total);
-	grEff_TY->SetTitle(Form("Efficiency for each TY (%s);tan#theta;efficiency", title.Data()));
-	grEff_TY->Draw("ap");
+	pEff_TY->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
 
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf]", title.Data()));
 	TFile fout(Form("efficiency_output/efficiency_%s.root", title.Data()), "recreate");
 	pEff_angle->Write();
 	pEff_plate->Write();
-	grEff_TX->Write();
-	grEff_TY->Write();
+	pEff_TX->Write();
+	pEff_TY->Write();
 	fout.Close();
 
 	FILE *ftxt = fopen("efficiency_output/efficiency.txt", "w"); // Make txt file for smearing parameters.
-	for (int i = 1; i <= nbins; i++)
+	for (int i = 1; i <= nbins_angle; i++)
 	{
-		fprintf(ftxt, "%.3f, ", (bins[i] + bins[i - 1]) / 2);
+		fprintf(ftxt, "%.3f, ", (bins_angle[i] + bins_angle[i - 1]) / 2);
 	}
 	fprintf(ftxt, "\n");
-	for (int i = 1; i <= nbins; i++)
+	for (int i = 1; i <= nbins_angle; i++)
 	{
 		fprintf(ftxt, "%f ", pEff_angle->GetEfficiency(i));
 	}
