@@ -23,8 +23,8 @@ int main(int argc, char *argv[])
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
 	
-	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=5&&npl>=9");
-	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
+	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=4");
+	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
 
 	TObjArray *tracks = pvr->GetTracks();
 	int ntrk = tracks->GetEntriesFast();
@@ -35,12 +35,12 @@ int main(int argc, char *argv[])
 		return 0;
 	}
     FnuQualityCheck qc(pvr, title);
-	qc.CalcDeltaXY(ntrk,Xcenter,Ycenter,bin_width);
-	qc.FitDeltaXY();
-	qc.PlotPosRes("pos_res/sigmaPar_" + title + ".pdf");
-	qc.PrintDeltaXYHist("pos_res/deltaxy_" + title + ".pdf");
-	qc.WritePosResPar("pos_res/sigmaPar_" + title + ".root");
-	qc.WriteDeltaXY("deltaXY/tree_" + title + ".root");
+	// qc.CalcDeltaXY(Xcenter,Ycenter,bin_width);
+	// qc.FitDeltaXY();
+	// qc.PlotPosRes("pos_res/sigmaPar_" + title + ".pdf");
+	// qc.PrintDeltaXYHist("pos_res/deltaxy_" + title + ".pdf");
+	// qc.WritePosResPar("pos_res/sigmaPar_" + title + ".root");
+	// qc.WriteDeltaXY("deltaXY/tree_" + title + ".root");
 	qc.CalcEfficiency();
 
 	return 0;
