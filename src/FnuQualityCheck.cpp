@@ -17,60 +17,35 @@
 #include <TEventList.h>
 #include <TEfficiency.h>
 #include <TGraphAsymmErrors.h>
-double sigmaX, sigmaY, meanX, meanY;
-int entries, pl;
 
 FnuQualityCheck::FnuQualityCheck(EdbPVRec *pvr, TString title)
+	: pvr(pvr),
+	  title(title),
+	  nPID(pvr->Npatterns()),
+	  plMin(pvr->GetPattern(0)->Plate()),
+	  plMax(pvr->GetPattern(nPID - 1)->Plate()),
+	  ntrk(pvr->Ntracks())
 {
-	this->pvr = pvr;
-	this->title = title;
-	nPID = pvr->Npatterns();
-	plMin = pvr->GetPattern(0)->Plate();
-	plMax = pvr->GetPattern(nPID - 1)->Plate();
-	ntrk = pvr->Ntracks();
+	double bins_arr_angle[] = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
+	SetBinsAngle(26,bins_arr_angle);
+	double bins_arr_TXTY[] = {-0.5, -0.45, -0.4, -0.35, -0.3, -0.25, -0.2, -0.19, -0.18, -0.17, -0.16, -0.15, -0.14, -0.13, -0.12, -0.11, -0.10, -0.09, -0.08, -0.07, -0.06, -0.05, -0.04, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
+	SetBinsTXTY(52,bins_arr_TXTY);
+}
+
+void FnuQualityCheck::SetBinsAngle(int nbins, double bins[])
+{
+	bins_vec_angle.assign(&bins[0], &bins[nbins+1]);
+}
+
+void FnuQualityCheck::SetBinsTXTY(int nbins, double bins[])
+{
+	bins_vec_TXTY.assign(&bins[0], &bins[nbins + 1]);
 }
 
 FnuQualityCheck::~FnuQualityCheck()
 {
 }
-// void FnuQualityCheck::CalcDeltaXYFromRootFile(TString fname, double Xcenter, double Ycenter, TCut cut,double bin_width)
-// {
-// 	TFile fin(fname);
-// 	TTree *tracks = (TTree*)fin.Get("tracks");
-// 	tracks->Draw(">>elist",cut);
-// 	TEventList *list = (TEventList*)gDirectory->Get("elist");
-// 	nPID = tracks->GetMaximum("s.ePID")+1;
-// 	// int plMin = deltaXY->GetMinimum("pl");
-// 	// int plMax = deltaXY->GetMaximum("pl");
-// 	deltaXY = new TTree("deltaXY", "deltaXY");
-// 	double deltaX, deltaY, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
-// 	int plate, cross_the_line, trid, nseg;
-// 	deltaXY->Branch("deltaX", &deltaX);
-// 	deltaXY->Branch("deltaY", &deltaY);
-// 	deltaXY->Branch("deltaTX", &deltaTX);
-// 	deltaXY->Branch("deltaTY", &deltaTY);
-// 	deltaXY->Branch("x", &x_t);
-// 	deltaXY->Branch("y", &y_t);
-// 	deltaXY->Branch("slopeX", &slopeX);
-// 	deltaXY->Branch("slopeY", &slopeY);
-// 	deltaXY->Branch("pl", &plate);
-// 	deltaXY->Branch("cross_the_line", &cross_the_line);
-// 	deltaXY->Branch("trid", &trid);
-// 	deltaXY->Branch("nseg", &nseg);
-// 	double tx3;
-// 	double ty3;
-// 	TBranch *bX = tracks->GetBranch("s.eX");
-// 	TBranch *bY = tracks->GetBranch("s.eY");
-// 	TBranch *bZ = tracks->GetBranch("s.eZ");
-// 	TBranch *bTX = tracks->GetBranch("s.eTX");
-// 	TBranch *bTY = tracks->GetBranch("s.eTY");
-// 	TBranch *bnseg = tracks->GetBranch("nseg");
-// 	for(int itrk = 0;itrk<list->GetN();itrk++)
-// 	{
-// 		int entr = list->GetEntry(itrk);
 
-// 	}
-// }
 void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_width)
 {
 	deltaXY = new TTree("deltaXY", "deltaXY");
@@ -151,7 +126,7 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 				y_updown[i] = y[i + 1];
 				z_updown[i] = z[i + 1];
 			}
-			double a0, slopeX,slopeY;
+			double a0, slopeX, slopeY;
 			CalcLSM(z_updown, x_updown, 4, a0, slopeX);
 			double x3fit = a0 + slopeX * z[2];
 			CalcLSM(z_updown, y_updown, 4, a0, slopeY);
@@ -278,12 +253,11 @@ void FnuQualityCheck::CalcLSM(double x[], double y[], int N, double &a0, double 
 
 void FnuQualityCheck::PlotPosRes(TString filename)
 {
-	// gSystem->Load("libTree");
 	// int plMax = posResPar->GetMaximum("pl");
 	// int plMin = posResPar->GetMinimum("pl");
 	TCanvas *c1 = new TCanvas();
 	// c1->Print("pos_res/sigmaPar_" + title + ".pdf[");
-	c1->Print(filename+"[");
+	c1->Print(filename + "[");
 	posResPar->Draw("meanY:plate");
 	int N = posResPar->GetSelectedRows();
 	TGraph *grY = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
@@ -352,13 +326,13 @@ void FnuQualityCheck::PlotPosRes(TString filename)
 	c1->Print(filename);
 	c1->Clear();
 	c1->Print(filename);
-	c1->Print(filename+"]");
+	c1->Print(filename + "]");
 }
 void FnuQualityCheck::PrintDeltaXYHist(TString filename)
 {
 	TCanvas c;
 	// c.Print("pos_res/deltaxy_" + title + ".pdf[");
-	c.Print(filename+"[");
+	c.Print(filename + "[");
 	for (int ient = 0; ient < htree->GetEntriesFast(); ient++)
 	{
 		htree->GetEntry(ient);
@@ -371,7 +345,7 @@ void FnuQualityCheck::PrintDeltaXYHist(TString filename)
 		printf("Histograms for plate %d have been printed\n", plate);
 	}
 	// c.Print("pos_res/deltaxy_" + title + ".pdf]");
-	c.Print(filename+"]");
+	c.Print(filename + "]");
 }
 void FnuQualityCheck::WritePosResPar(TString filename)
 {
@@ -383,24 +357,25 @@ void FnuQualityCheck::WritePosResPar(TString filename)
 void FnuQualityCheck::WriteDeltaXY(TString filename)
 {
 	// TFile fout("deltaXY/tree_" + title + ".root", "recreate");
-	TFile fout(filename,"recreate");
+	TFile fout(filename, "recreate");
 	deltaXY->Write();
 	fout.Close();
 }
 
 void FnuQualityCheck::CalcEfficiency()
 {
-	double bins_angle[] = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
-	int nbins_angle = 26;
-	double bins_TXTY[] = {-0.5, -0.45, -0.4, -0.35, -0.3, -0.25, -0.2, -0.19, -0.18, -0.17, -0.16, -0.15, -0.14, -0.13, -0.12, -0.11, -0.10, -0.09, -0.08, -0.07, -0.06, -0.05, -0.04, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
-	int nbins_TXTY = 52;
+	double bins_angle[bins_vec_angle.size()];
+	std::copy(bins_vec_angle.begin(),bins_vec_angle.end(),bins_angle);
+	int nbins_angle = bins_vec_angle.size()-1;
+	double bins_TXTY[bins_vec_TXTY.size()];
+	std::copy(bins_vec_TXTY.begin(), bins_vec_TXTY.end(), bins_TXTY);
+	int nbins_TXTY = bins_vec_TXTY.size()-1;
 
 	TEfficiency *pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta", title.Data()), nbins_angle, bins_angle);
 	TEfficiency *pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate", title.Data()), plMax - plMin, plMin, plMax);
 	TEfficiency *pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
 	TEfficiency *pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
 
-	// TFile treefout(Form("efficiency_output/tree_%s.root", title.Data()), "recreate");
 	effInfo = new TTree("effInfo", "efficiency infomation");
 	effInfo->Branch("trackID", &trackID);
 	effInfo->Branch("x", &x);
@@ -455,10 +430,10 @@ void FnuQualityCheck::CalcEfficiency()
 				TX = (x2 - x1) / (z2 - z1);
 				TY = (y2 - y1) / (z2 - z1);
 				angle = sqrt(TX * TX + TY * TY);
-				pEff_angle->Fill(hitsOnThePlate,angle);
-				pEff_plate->Fill(hitsOnThePlate,iplate);
-				pEff_TX->Fill(hitsOnThePlate,TX);
-				pEff_TY->Fill(hitsOnThePlate,TY);
+				pEff_angle->Fill(hitsOnThePlate, angle);
+				pEff_plate->Fill(hitsOnThePlate, iplate);
+				pEff_TX->Fill(hitsOnThePlate, TX);
+				pEff_TY->Fill(hitsOnThePlate, TY);
 				trackID = t->ID();
 				x = (x1 + x2) / 2;
 				y = (y1 + y2) / 2;
@@ -500,19 +475,6 @@ void FnuQualityCheck::CalcEfficiency()
 	pEff_TX->Write();
 	pEff_TY->Write();
 	fout.Close();
-
-	FILE *ftxt = fopen("efficiency_output/efficiency.txt", "w"); // Make txt file for smearing parameters.
-	for (int i = 1; i <= nbins_angle; i++)
-	{
-		fprintf(ftxt, "%.3f, ", (bins_angle[i] + bins_angle[i - 1]) / 2);
-	}
-	fprintf(ftxt, "\n");
-	for (int i = 1; i <= nbins_angle; i++)
-	{
-		fprintf(ftxt, "%f ", pEff_angle->GetEfficiency(i));
-	}
-	fprintf(ftxt, "\n");
-	fclose(ftxt);
 }
 void FnuQualityCheck::WriteEfficiencyTree(TString filename)
 {
