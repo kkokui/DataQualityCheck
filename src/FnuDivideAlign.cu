@@ -357,7 +357,7 @@ int FnuDivideAlign::Align(TObjArray *tracks,double Xcenter, double Ycenter,int n
 					tracks2->Add(t);
 				}
 			}
-			if (tracks2->GetEntries() == 0)
+			if (tracks2->GetEntries() < 20)
 			{
 				continue;
 			}
