@@ -9,6 +9,7 @@ class FnuQualityCheck
         TTree *posResPar;
         TTree *htree;
         TString title;
+        int ntrk;
         int nPID;
         double XYrange;
         int plMin;
@@ -26,7 +27,7 @@ class FnuQualityCheck
         ~FnuQualityCheck();
         // methods for position resolution
         // void CalcDeltaXYFromRootFile(TString fname = "linked_tracks.root", double Xcenter, double Ycenter, TCut cut = "nseg>=5", double bin_width);
-        void CalcDeltaXY(int ntrk, double Xcenter, double Ycenter, double bin_width);
+        void CalcDeltaXY(double Xcenter, double Ycenter, double bin_width);
         void FitDeltaXY();
         void CalcLSM(double x[],double y[], int N, double &a0, double &a1);
         void PlotPosRes(TString filename);
