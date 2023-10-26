@@ -129,7 +129,7 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 				areaX[ipoint] = (x[ipoint] - (Xcenter - XYrange)) / bin_width;
 				areaY[ipoint] = (y[ipoint] - (Ycenter - XYrange)) / bin_width;
 			}
-			cross_the_line = 0;
+			int cross_the_line = 0;
 			for (int ipoint = 0; ipoint < 5 - 1; ipoint++)
 			{
 				if (areaX[ipoint] != areaX[ipoint + 1] || areaY[ipoint] != areaY[ipoint + 1])
@@ -151,7 +151,7 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 				y_updown[i] = y[i + 1];
 				z_updown[i] = z[i + 1];
 			}
-			double a0;
+			double a0, slopeX,slopeY;
 			CalcLSM(z_updown, x_updown, 4, a0, slopeX);
 			double x3fit = a0 + slopeX * z[2];
 			CalcLSM(z_updown, y_updown, 4, a0, slopeY);
@@ -400,21 +400,18 @@ void FnuQualityCheck::CalcEfficiency()
 	TEfficiency *pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
 	TEfficiency *pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
 
-	TFile treefout(Form("efficiency_output/tree_%s.root", title.Data()), "recreate");
-	TTree *tree = new TTree("tree", "efficiency infomation");
-	int trackID, pl, nseg, W, hitsOnThePlate;
-	double x, y, angle, TX, TY;
-	bool bpassed;
-	tree->Branch("trackID", &trackID);
-	tree->Branch("x", &x);
-	tree->Branch("y", &y);
-	tree->Branch("angle", &angle);
-	tree->Branch("TX", &TX);
-	tree->Branch("TY", &TY);
-	tree->Branch("pl", &pl);
-	tree->Branch("nseg", &nseg);
-	tree->Branch("W", &W);
-	tree->Branch("hitsOnThePlate", &hitsOnThePlate);
+	// TFile treefout(Form("efficiency_output/tree_%s.root", title.Data()), "recreate");
+	effInfo = new TTree("effInfo", "efficiency infomation");
+	effInfo->Branch("trackID", &trackID);
+	effInfo->Branch("x", &x);
+	effInfo->Branch("y", &y);
+	effInfo->Branch("angle", &angle);
+	effInfo->Branch("TX", &TX);
+	effInfo->Branch("TY", &TY);
+	effInfo->Branch("plate", &plate);
+	effInfo->Branch("nseg", &nseg);
+	effInfo->Branch("W", &W);
+	effInfo->Branch("hitsOnThePlate", &hitsOnThePlate);
 
 	double x1, y1, z1, x2, y2, z2;
 	for (int itrk = 0; itrk < ntrk; itrk++)
@@ -465,11 +462,10 @@ void FnuQualityCheck::CalcEfficiency()
 				trackID = t->ID();
 				x = (x1 + x2) / 2;
 				y = (y1 + y2) / 2;
-				tree->Fill();
+				effInfo->Fill();
 			}
 		}
 	}
-	tree->Write();
 	TCanvas *c = new TCanvas();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf[", title.Data()));
 	c->SetLogy(1);
@@ -517,4 +513,10 @@ void FnuQualityCheck::CalcEfficiency()
 	}
 	fprintf(ftxt, "\n");
 	fclose(ftxt);
+}
+void FnuQualityCheck::WriteEfficiencyTree(TString filename)
+{
+	TFile fout(filename, "recreate");
+	effInfo->Write();
+	fout.Close();
 }

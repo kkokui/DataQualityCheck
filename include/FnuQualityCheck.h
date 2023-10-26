@@ -8,6 +8,7 @@ class FnuQualityCheck
         TTree *deltaXY;
         TTree *posResPar;
         TTree *htree;
+        TTree *effInfo;
         TString title;
         int ntrk;
         int nPID;
@@ -15,12 +16,13 @@ class FnuQualityCheck
         int plMin;
         int plMax;
         // variables for TTree
-        double deltaX, deltaY, deltaTX, deltaTY, x_t, y_t, slopeX, slopeY;
-        int plate, cross_the_line, trid, nseg;
+        int plate;
         std::vector<double> *deltaXV=0, *deltaYV=0, *deltaTXV=0, *deltaTYV=0, *xV=0, *yV=0, *slopeXV=0, *slopeYV=0;
         std::vector<int> *crossTheLineV=0, *tridV=0, *nsegV=0;
         TH1D *hdeltaX;
         TH1D *hdeltaY;
+        int trackID, nseg, W, hitsOnThePlate;
+        double x, y, angle, TX, TY;
 
     public:
         FnuQualityCheck(EdbPVRec *pvr, TString title);
@@ -37,5 +39,5 @@ class FnuQualityCheck
         // methods for efficiency
         void CalcEfficiency();
         void PrintEfficiency();
-        void WriteEfficiencyTree();
+        void WriteEfficiencyTree(TString filename);
 };
