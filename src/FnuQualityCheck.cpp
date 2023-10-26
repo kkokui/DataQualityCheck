@@ -431,16 +431,16 @@ void FnuQualityCheck::CalcEfficiency()
 			{
 				EdbSegP *s = t->GetSegment(iseg);
 
-				if (s->PID() == iPID - 2*2 || s->PID() == iPID + 2*2)
+				if (s->PID() == iPID - 2 || s->PID() == iPID + 2)
 					counts++;
-				if (s->PID() == iPID - 1*2)
+				if (s->PID() == iPID - 1)
 				{
 					x1 = s->X();
 					y1 = s->Y();
 					z1 = s->Z();
 					counts++;
 				}
-				if (s->PID() == iPID + 1*2)
+				if (s->PID() == iPID + 1)
 				{
 					x2 = s->X();
 					y2 = s->Y();
