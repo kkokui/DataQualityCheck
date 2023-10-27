@@ -77,17 +77,16 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 			for (int iseg = 0; iseg < nseg; iseg++)
 			{
 				EdbSegP *s = t->GetSegment(iseg);
-				for (int ipoint = 0; ipoint < 5; ipoint++)
-				{
-					if (s->PID() == iPID - 2 + ipoint)
-					{
-						x[ipoint] = s->X();
-						y[ipoint] = s->Y();
-						z[ipoint] = s->Z();
-						count++;
-					}
-				}
-				if (s->PID() == iPID)
+				int sPID = s->PID();
+				if(sPID>iPID+2)
+					break;
+				if(sPID<iPID-2)
+					continue;
+				x[sPID-iPID+2] = s->X();
+				y[sPID-iPID+2] = s->Y();
+				z[sPID-iPID+2] = s->Z();
+				count++;
+				if (sPID == iPID)
 				{
 					tx3 = s->TX();
 					ty3 = s->TY();
@@ -371,10 +370,10 @@ void FnuQualityCheck::CalcEfficiency()
 	std::copy(bins_vec_TXTY.begin(), bins_vec_TXTY.end(), bins_TXTY);
 	int nbins_TXTY = bins_vec_TXTY.size()-1;
 
-	TEfficiency *pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta", title.Data()), nbins_angle, bins_angle);
-	TEfficiency *pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate", title.Data()), plMax - plMin, plMin, plMax);
-	TEfficiency *pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
-	TEfficiency *pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
+	pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta", title.Data()), nbins_angle, bins_angle);
+	pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate", title.Data()), plMax - plMin, plMin, plMax);
+	pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
+	pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
 
 	effInfo = new TTree("effInfo", "efficiency infomation");
 	effInfo->Branch("trackID", &trackID);
@@ -402,24 +401,28 @@ void FnuQualityCheck::CalcEfficiency()
 			for (int iseg = 0; iseg < nseg; iseg++)
 			{
 				EdbSegP *s = t->GetSegment(iseg);
-
-				if (s->PID() == iPID - 2 || s->PID() == iPID + 2)
+				int sPID = s->PID();
+				if (sPID > iPID+2)
+					break;
+				if (sPID < iPID-2)
+					continue;
+				if (sPID == iPID - 2 || sPID == iPID + 2)
 					counts++;
-				if (s->PID() == iPID - 1)
+				if (sPID == iPID - 1)
 				{
 					x1 = s->X();
 					y1 = s->Y();
 					z1 = s->Z();
 					counts++;
 				}
-				if (s->PID() == iPID + 1)
+				if (sPID == iPID + 1)
 				{
 					x2 = s->X();
 					y2 = s->Y();
 					z2 = s->Z();
 					counts++;
 				}
-				if (s->PID() == iPID)
+				if (sPID == iPID)
 				{
 					hitsOnThePlate = 1;
 					W = s->W();
@@ -441,44 +444,54 @@ void FnuQualityCheck::CalcEfficiency()
 			}
 		}
 	}
+}
+
+void FnuQualityCheck::PlotEfficiency(TString filename)
+{
+	// Plot efficiencies and print them.
 	TCanvas *c = new TCanvas();
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf[", title.Data()));
+	c->Print(filename+"[");
 	c->SetLogy(1);
 	pEff_angle->GetCopyTotalHisto()->Draw();
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
+	c->Print(filename);
 	c->SetLogy(0);
 	pEff_angle->Draw();
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
+	c->Print(filename);
 	pEff_plate->GetCopyTotalHisto()->Draw();
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
+	c->Print(filename);
 	pEff_plate->Draw();
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
+	c->Print(filename);
 
 	c->SetLogy(1);
 	pEff_TX->GetCopyTotalHisto()->Draw();
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
+	c->Print(filename);
 	c->SetLogy(0);
 	pEff_TX->Draw();
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
+	c->Print(filename);
 
 	c->SetLogy(1);
 	pEff_TY->GetCopyTotalHisto()->Draw();
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
+	c->Print(filename);
 	c->SetLogy(0);
 	pEff_TY->Draw();
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf", title.Data()));
+	c->Print(filename);
 
-	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf]", title.Data()));
-	TFile fout(Form("efficiency_output/efficiency_%s.root", title.Data()), "recreate");
-	pEff_angle->Write();
-	pEff_plate->Write();
-	pEff_TX->Write();
-	pEff_TY->Write();
-	fout.Close();
+	c->Print(filename+"]");
 }
+
 void FnuQualityCheck::WriteEfficiencyTree(TString filename)
 {
 	TFile fout(filename, "recreate");
 	effInfo->Write();
+	fout.Close();
+}
+
+void FnuQualityCheck::WriteEfficiency(TString filename)
+{
+	TFile fout(filename, "recreate");
+	pEff_angle->Write();
+	pEff_plate->Write();
+	pEff_TX->Write();
+	pEff_TY->Write();
 	fout.Close();
 }
