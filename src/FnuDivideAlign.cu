@@ -22,7 +22,7 @@ struct cudaTrack
 	cudaSegment segments[NPIDMAX];
 };
 
-float robustFactor;
+float robustFactor = 1.0;
 int ncall;
 TObjArray *gTracks;
 
@@ -30,19 +30,18 @@ TObjArray *gTracks;
 double *h_params;
 double *d_params;
 cudaTrack *h_tracks;
-cudaTrack* d_tracks;
-float* h_chi2;
-float* d_chi2;
+cudaTrack *d_tracks;
+float *h_chi2;
+float *d_chi2;
 
 FnuDivideAlign::FnuDivideAlign()
+	: binWidth(2000), rangeXY(8500)
 {
-	binWidth = 2000;
-	robustFactor = 1.0;
-	rangeXY = 8500;
 }
 
 FnuDivideAlign::~FnuDivideAlign()
-{}
+{
+}
 
 void FnuDivideAlign::SetBinWidth(double bwidth)
 {
@@ -64,7 +63,7 @@ float FnuDivideAlign::GetRobustFactor()
 	return robustFactor;
 }
 
-__global__ void lsm_kernel(int n, cudaTrack* d_trk, double *d_param)
+__global__ void lsm_kernel(int n, cudaTrack *d_trk, double *d_param)
 {
 	// Calculation of least square method
 
@@ -73,42 +72,45 @@ __global__ void lsm_kernel(int n, cudaTrack* d_trk, double *d_param)
 	const unsigned int tsize = blockDim.x;
 	const unsigned int bid = blockIdx.x;
 	// x = a0 + a1*z
-	int pos = tid + tsize*bid;
-	if (pos < n) {
+	int pos = tid + tsize * bid;
+	if (pos < n)
+	{
 		cudaTrack *t = &d_trk[pos];
-        int i;
-        double A00=0 ,A01=0, A02=0, A11=0, A12=0;
-        double B00=0 ,B01=0, B02=0, B11=0, B12=0;
-        for (i=0;i<NPIDMAX;i++) {
+		int i;
+		double A00 = 0, A01 = 0, A02 = 0, A11 = 0, A12 = 0;
+		double B00 = 0, B01 = 0, B02 = 0, B11 = 0, B12 = 0;
+		for (i = 0; i < NPIDMAX; i++)
+		{
 			cudaSegment *s = &t->segments[i];
-	 		float x = s->x + d_param[s->pid*2];
-	 		float y = s->y + d_param[s->pid*2+1];
-	 		float z = s->z;
-			if(s->flag){
-                A00+=1.0;
-                A01+=z;
-                A02+=x;
-                A11+=z*z;
-                A12+=z*x;
-                B00+=1.0;
-                B01+=z;
-                B02+=y;
-                B11+=z*z;
-                B12+=z*y;
-            }
-        }
- 
-        t->x = (A02*A11-A01*A12) / (A00*A11-A01*A01);
-        t->tx = (A00*A12-A01*A02) / (A00*A11-A01*A01);
+			float x = s->x + d_param[s->pid * 2];
+			float y = s->y + d_param[s->pid * 2 + 1];
+			float z = s->z;
+			if (s->flag)
+			{
+				A00 += 1.0;
+				A01 += z;
+				A02 += x;
+				A11 += z * z;
+				A12 += z * x;
+				B00 += 1.0;
+				B01 += z;
+				B02 += y;
+				B11 += z * z;
+				B12 += z * y;
+			}
+		}
 
-        t->y = (B02*B11-B01*B12) / (B00*B11-B01*B01);
-        t->ty = (B00*B12-B01*B02) / (B00*B11-B01*B01);
-        t->z = 0;
+		t->x = (A02 * A11 - A01 * A12) / (A00 * A11 - A01 * A01);
+		t->tx = (A00 * A12 - A01 * A02) / (A00 * A11 - A01 * A01);
+
+		t->y = (B02 * B11 - B01 * B12) / (B00 * B11 - B01 * B01);
+		t->ty = (B00 * B12 - B01 * B02) / (B00 * B11 - B01 * B01);
+		t->z = 0;
 	}
 	__syncthreads();
 }
 
-__global__ void calc_chi2_kernel(int n, cudaTrack* d_trk, double *p, float *d_chi2)
+__global__ void calc_chi2_kernel(int n, cudaTrack *d_trk, double *p, float *d_chi2)
 {
 	// Calculate chi2 of a track
 
@@ -116,36 +118,37 @@ __global__ void calc_chi2_kernel(int n, cudaTrack* d_trk, double *p, float *d_ch
 	const unsigned int tid = threadIdx.x;
 	const unsigned int tsize = blockDim.x;
 	const unsigned int bid = blockIdx.x;
-	
-	int pos = tid + tsize*bid;
+
+	int pos = tid + tsize * bid;
 	float chi2 = 0;
-	if (pos < n) {
-		float sigmaPos2 = 0.36;//0.6 * 0.6;
-		float sigmaAng2 = 4e-6;//0.002 * 0.002;
-		
+	if (pos < n)
+	{
+		float sigmaPos2 = 0.36; // 0.6 * 0.6;
+		float sigmaAng2 = 4e-6; // 0.002 * 0.002;
+
 		cudaTrack *t = &d_trk[pos];
-		
-		int nseg=0;
-		for(int i=0; i<NPIDMAX; i++)
+
+		int nseg = 0;
+		for (int i = 0; i < NPIDMAX; i++)
 		{
 			cudaSegment *s = &t->segments[i];
-			if(s->flag==0) continue;
-			float x = s->x + p[i*2];
-			float y = s->y + p[i*2+1];
+			if (s->flag == 0)
+				continue;
+			float x = s->x + p[i * 2];
+			float y = s->y + p[i * 2 + 1];
 			float z = s->z;
-			float dx = x - (t->x+t->tx*(z-t->z));
-			float dy = y - (t->y+t->ty*(z-t->z));
+			float dx = x - (t->x + t->tx * (z - t->z));
+			float dy = y - (t->y + t->ty * (z - t->z));
 			chi2 += dx * dx + dy * dy;
 			nseg++;
 		}
-		chi2 /= sigmaPos2*nseg;
+		chi2 /= sigmaPos2 * nseg;
 		float txFit = t->tx;
 		float tyFit = t->ty;
 		float tx = t->tx_first8;
 		float ty = t->ty_first8;
 		chi2 += ((tx - txFit) * (tx - txFit) + (ty - tyFit) * (ty - tyFit)) / sigmaAng2;
 		d_chi2[pos] = chi2;
-		
 	}
 	__syncthreads();
 }
@@ -155,67 +158,74 @@ void fitfuncRobust(Int_t &npar, Double_t *grad, Double_t &fval, Double_t *p, Int
 	// Fit function for TMinuit
 
 	double delta2 = 0.0;
-	
-	for(int i=0; i<NPIDMAX*2; i++){h_params[i]=p[i];}
-	
-	checkCudaErrors( cudaMemcpy( d_params, h_params, sizeof(double)*NPIDMAX*2, cudaMemcpyHostToDevice) );
-	
+
+	for (int i = 0; i < NPIDMAX * 2; i++)
+	{
+		h_params[i] = p[i];
+	}
+
+	checkCudaErrors(cudaMemcpy(d_params, h_params, sizeof(double) * NPIDMAX * 2, cudaMemcpyHostToDevice));
+
 	int ntrk = gTracks->GetEntriesFast();
 	int numthread = 512;
-	int numblock = (ntrk + numthread -1)/numthread;
+	int numblock = (ntrk + numthread - 1) / numthread;
 	dim3 threads(numthread, 1, 1);
 	dim3 blocks(numblock, 1, 1);
-	
-	lsm_kernel <<< blocks, threads >>> (ntrk, d_tracks, d_params);
+
+	lsm_kernel<<<blocks, threads>>>(ntrk, d_tracks, d_params);
 	cudaDeviceSynchronize();
 	// check if kernel execution generated and error
 	getLastCudaError("lsm Kernel execution failed");
-	
-	calc_chi2_kernel<<< blocks, threads >>> (ntrk, d_tracks, d_params, d_chi2);
+
+	calc_chi2_kernel<<<blocks, threads>>>(ntrk, d_tracks, d_params, d_chi2);
 	cudaDeviceSynchronize();
 	getLastCudaError("calc chi2 Kernel execution failed");
-	
+
 	// thrust, sort on GPU
-	thrust::sort(thrust::device, d_chi2, d_chi2+ntrk);
-	checkCudaErrors( cudaMemcpy( h_chi2, d_chi2, sizeof(float)*ntrk, cudaMemcpyDeviceToHost) );
+	thrust::sort(thrust::device, d_chi2, d_chi2 + ntrk);
+	checkCudaErrors(cudaMemcpy(h_chi2, d_chi2, sizeof(float) * ntrk, cudaMemcpyDeviceToHost));
 	int nrobust = ntrk * robustFactor; // For example, if robustFactor = 0.5, only 50% of tracks will be used.
-	for (int i = 0; i < nrobust; i++) 
+	for (int i = 0; i < nrobust; i++)
 	{
 		delta2 += h_chi2[i];
 	}
-	
-	//regularization
-	// double lambda = 0.1;
-	// for(int i=0;i<nPID*2)
-	// {
-	// 	delta2+=lambda*p[i]*p[i]; //L2 regularization
-	// 	// delta2+=lambda*abs(p[i]); //L1 regularization
-	// }
+
+	// regularization
+	//  double lambda = 0.1;
+	//  for(int i=0;i<nPID*2)
+	//  {
+	//  	delta2+=lambda*p[i]*p[i]; //L2 regularization
+	//  	// delta2+=lambda*abs(p[i]); //L1 regularization
+	//  }
 
 	fval = delta2;
-	if(ncall%1000==0) {
+	if (ncall % 1000 == 0)
+	{
 		printf("ncall=%d fval = %lf ", ncall, fval);
-		for(int i=0; i<10; i++){printf("%4.1lf ", p[i]);}
+		for (int i = 0; i < 10; i++)
+		{
+			printf("%4.1lf ", p[i]);
+		}
 		printf("\n");
 	}
 	ncall++;
 }
 
-void FnuDivideAlign::CalcAlignPar(TObjArray *tracks,double iX, double iY, int fixflag)
+void FnuDivideAlign::CalcAlignPar(TObjArray *tracks, double iX, double iY, int fixflag)
 {
 	// Calculate alignment parameters in a divided area
 
 	gTracks = tracks;
 	int ntrk = gTracks->GetEntriesFast();
 	// Cuda data buffers
-	checkCudaErrors( cudaMallocHost( (void**) &h_tracks, sizeof(cudaTrack)*ntrk) );
-	checkCudaErrors( cudaMallocHost( (void**) &h_chi2, sizeof(float)*ntrk) );
-	checkCudaErrors( cudaMallocHost( (void**) &h_params, sizeof(double)*NPIDMAX*2) );
-	
-	checkCudaErrors( cudaMalloc( (void**) &d_tracks, sizeof(cudaTrack)*ntrk) );
-	checkCudaErrors( cudaMalloc( (void**) &d_chi2, sizeof(float)*ntrk) );
-	checkCudaErrors( cudaMalloc( (void**) &d_params, sizeof(double)*NPIDMAX*2) );
-	
+	checkCudaErrors(cudaMallocHost((void **)&h_tracks, sizeof(cudaTrack) * ntrk));
+	checkCudaErrors(cudaMallocHost((void **)&h_chi2, sizeof(float) * ntrk));
+	checkCudaErrors(cudaMallocHost((void **)&h_params, sizeof(double) * NPIDMAX * 2));
+
+	checkCudaErrors(cudaMalloc((void **)&d_tracks, sizeof(cudaTrack) * ntrk));
+	checkCudaErrors(cudaMalloc((void **)&d_chi2, sizeof(float) * ntrk));
+	checkCudaErrors(cudaMalloc((void **)&d_params, sizeof(double) * NPIDMAX * 2));
+
 	for (int i = 0; i < ntrk; i++)
 	{
 		// Setup structures for tracks
@@ -224,78 +234,82 @@ void FnuDivideAlign::CalcAlignPar(TObjArray *tracks,double iX, double iY, int fi
 		ct->tx_first8 = t->TX();
 		ct->ty_first8 = t->TY();
 		ct->nseg = t->N();
-		for(int ipid=0; ipid<NPIDMAX; ipid++){ ct->segments[ipid].flag=0;} // Clear initial values
+		for (int ipid = 0; ipid < NPIDMAX; ipid++)
+		{
+			ct->segments[ipid].flag = 0;
+		} // Clear initial values
 		for (int iseg = 0; iseg < t->N(); iseg++)
 		{
 			EdbSegP *s = t->GetSegment(iseg);
 			if (fabs(s->X() - iX) < binWidth / 2 && fabs(s->Y() - iY) < binWidth / 2)
 			{
 				int pid = s->PID();
-				ct->segments[pid].flag=1;
-				ct->segments[pid].x=s->X();
-				ct->segments[pid].y=s->Y();
-				ct->segments[pid].z=s->Z();
+				ct->segments[pid].flag = 1;
+				ct->segments[pid].x = s->X();
+				ct->segments[pid].y = s->Y();
+				ct->segments[pid].z = s->Z();
 			}
 		}
 	}
-	checkCudaErrors( cudaMemcpy( d_tracks, h_tracks, sizeof(cudaTrack)*ntrk, cudaMemcpyHostToDevice) );
+	checkCudaErrors(cudaMemcpy(d_tracks, h_tracks, sizeof(cudaTrack) * ntrk, cudaMemcpyHostToDevice));
 	// The default minimizer is Minuit, you can also try Minuit2
 	TVirtualFitter::SetDefaultFitter("Minuit");
 	// minuit->BuildArrays(30);
 	// Int_t SetParameter(Int_t ipar, const char* parname, Double_t value, Double_t verr, Double_t vlow, Double_t vhigh)
 
 	// Set parameters of the initial plate
-	int pid=0; //initial plate
-	minuit->SetParameter(2*pid,Form("dx%d",pid),0,0,0,0);
-	minuit->SetParameter(2*pid+1,Form("dy%d",pid),0,0,0,0);
+	int pid = 0; // initial plate
+	minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0, 0, 0);
+	minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0, 0, 0);
 	// Set parameters of the middle plate
-	for(pid=1;pid<nPID-1;pid++)
+	for (pid = 1; pid < nPID - 1; pid++)
 	{
-		minuit->SetParameter(2*pid,Form("dx%d",pid),0,0.1,-30,30);
-		minuit->SetParameter(2*pid+1,Form("dy%d",pid),0,0.1,-30,30);
+		minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0.1, -30, 30);
+		minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0.1, -30, 30);
 	}
 	// Set parameters of the last plate
-	pid=nPID-1; // last plate
-	if(fixflag==1)
+	pid = nPID - 1; // last plate
+	if (fixflag == 1)
 	{
-		minuit->SetParameter(2*pid,Form("dx%d",pid),0,0,0,0);
-		minuit->SetParameter(2*pid+1,Form("dy%d",pid),0,0,0,0);
-	}else{
-		minuit->SetParameter(2*pid,Form("dx%d",pid),0,0.1,-30,30);
-		minuit->SetParameter(2*pid+1,Form("dy%d",pid),0,0.1,-30,30);
+		minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0, 0, 0);
+		minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0, 0, 0);
 	}
-	
+	else
+	{
+		minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0.1, -30, 30);
+		minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0.1, -30, 30);
+	}
+
 	minuit->SetFCN(fitfuncRobust);
-	
+
 	double arglist[200];
 	arglist[0] = 0;
 	// set print level. arglist[0]==0 is minimum print.
-	minuit->ExecuteCommand("SET PRIntout",arglist,1);
+	minuit->ExecuteCommand("SET PRIntout", arglist, 1);
 
 	// minimize
 	arglist[0] = 200000; // number of function calls
-	arglist[1] = 0.001; // tolerance
-	minuit->SetMaxIterations( 10000 );
-	ncall =0;
-	printf("Aligning iX = %.0f, iY = %.0f, ntrk = %d, robustFactor = %.1f\n",iX,iY,ntrk,robustFactor);
+	arglist[1] = 0.001;	 // tolerance
+	minuit->SetMaxIterations(10000);
+	ncall = 0;
+	printf("Aligning iX = %.0f, iY = %.0f, ntrk = %d, robustFactor = %.1f\n", iX, iY, ntrk, robustFactor);
 	minuit->ExecuteCommand("MIGRAD2", arglist, 2);
-	
+
 	// get result
-	for (int i = 0; i < nPID*2; ++i)
+	for (int i = 0; i < nPID * 2; ++i)
 	{
 		p[i] = minuit->GetParameter(i);
 		// parErrors[i] = minuit->GetParError(i);
 	}
-	
-	checkCudaErrors( cudaFreeHost( h_tracks) );
-	checkCudaErrors( cudaFreeHost( h_chi2) );
-	checkCudaErrors( cudaFreeHost( h_params) );
 
-	checkCudaErrors( cudaFree( d_tracks) );
-	checkCudaErrors( cudaFree( d_chi2) );
-	checkCudaErrors( cudaFree( d_params) );
+	checkCudaErrors(cudaFreeHost(h_tracks));
+	checkCudaErrors(cudaFreeHost(h_chi2));
+	checkCudaErrors(cudaFreeHost(h_params));
+
+	checkCudaErrors(cudaFree(d_tracks));
+	checkCudaErrors(cudaFree(d_chi2));
+	checkCudaErrors(cudaFree(d_params));
 }
-
 
 int FnuDivideAlign::CountPassedSeg(EdbTrackP *t, double iX, double iY)
 {
@@ -325,17 +339,17 @@ void FnuDivideAlign::ApplyAlign(EdbTrackP *t, double iX, double iY)
 	}
 }
 
-int FnuDivideAlign::Align(TObjArray *tracks,double Xcenter, double Ycenter,int nPatterns)
+int FnuDivideAlign::Align(TObjArray *tracks, double Xcenter, double Ycenter, int nPatterns)
 {
 	// Divide the area, Calculate alignment parameters and apply alignment
 	nPID = nPatterns;
-	minuit = TVirtualFitter::Fitter(0, nPID*2);
-	alignPar = new TTree("alignPar","alignPar");
-	alignPar->Branch("iX",&iXBranchValue);
-	alignPar->Branch("iY",&iYBranchValue);
-	alignPar->Branch("shiftX",&shiftXBranchValue);
-	alignPar->Branch("shiftY",&shiftYBranchValue);
-	alignPar->Branch("pid",&pidBranchValue);
+	minuit = TVirtualFitter::Fitter(0, nPID * 2);
+	alignPar = new TTree("alignPar", "alignPar");
+	alignPar->Branch("iX", &iXBranchValue);
+	alignPar->Branch("iY", &iYBranchValue);
+	alignPar->Branch("shiftX", &shiftXBranchValue);
+	alignPar->Branch("shiftY", &shiftYBranchValue);
+	alignPar->Branch("pid", &pidBranchValue);
 	int ntrk = tracks->GetEntriesFast();
 
 	// Divide the area into binWidth*binWidth mm^2 areas
@@ -361,17 +375,17 @@ int FnuDivideAlign::Align(TObjArray *tracks,double Xcenter, double Ycenter,int n
 			{
 				continue;
 			}
-			
+
 			// calculate the alignment parameters several times.
 			for (int j = 0; j < 1; j++)
 			{
 				CalcAlignPar(tracks2, iXBranchValue, iYBranchValue, 0);
 			}
-			
-			for(pidBranchValue=0;pidBranchValue<nPID;pidBranchValue++)
+
+			for (pidBranchValue = 0; pidBranchValue < nPID; pidBranchValue++)
 			{
-				shiftXBranchValue = p[pidBranchValue*2];
-				shiftYBranchValue = p[pidBranchValue*2+1];
+				shiftXBranchValue = p[pidBranchValue * 2];
+				shiftYBranchValue = p[pidBranchValue * 2 + 1];
 				alignPar->Fill();
 			}
 			for (int itrk = 0; itrk < ntrk; itrk++)
@@ -387,7 +401,7 @@ int FnuDivideAlign::Align(TObjArray *tracks,double Xcenter, double Ycenter,int n
 
 void FnuDivideAlign::WriteAlignPar(TString filename)
 {
-	//Write TTree for Shifts of alignment
+	// Write TTree for Shifts of alignment
 	TFile fout1(filename, "recreate");
 	alignPar->Write();
 	fout1.Close();

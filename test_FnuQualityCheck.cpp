@@ -22,8 +22,8 @@ int main(int argc, char *argv[])
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
 
-	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=4");
-	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
+	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=4");
+	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
 
 	TObjArray *tracks = pvr->GetTracks();
 	int ntrk = tracks->GetEntriesFast();

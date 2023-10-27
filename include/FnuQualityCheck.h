@@ -1,4 +1,5 @@
 #include <EdbDataSet.h>
+#include <TEfficiency.h>
 
 class FnuQualityCheck
 {
@@ -17,11 +18,11 @@ private:
     int plMax;
     std::vector<double> bins_vec_angle;
     std::vector<double> bins_vec_TXTY;
-    TEfficiency *pEff_angle, *pEff_plate, *pEff_TX,*pEff_TY;
+    TEfficiency *pEff_angle, *pEff_plate, *pEff_TX, *pEff_TY;
     // variables for TTree
     int plate;
-    std::vector<double> *deltaXV, *deltaYV = 0, *deltaTXV = 0, *deltaTYV = 0, *xV = 0, *yV = 0, *slopeXV = 0, *slopeYV = 0;
-    std::vector<int> *crossTheLineV = 0, *tridV = 0, *nsegV = 0;
+    std::vector<double> *deltaXV, *deltaYV, *deltaTXV, *deltaTYV, *xV, *yV, *slopeXV, *slopeYV;
+    std::vector<int> *crossTheLineV, *tridV, *nsegV;
     double sigmaX, sigmaY, meanX, meanY;
     int entries;
     TH1D *hdeltaX;

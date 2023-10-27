@@ -15,7 +15,6 @@
 #include <TLegend.h>
 #include <TMultiGraph.h>
 #include <TEventList.h>
-#include <TEfficiency.h>
 #include <TGraphAsymmErrors.h>
 
 FnuQualityCheck::FnuQualityCheck(EdbPVRec *pvr, TString title)
@@ -24,17 +23,19 @@ FnuQualityCheck::FnuQualityCheck(EdbPVRec *pvr, TString title)
 	  nPID(pvr->Npatterns()),
 	  plMin(pvr->GetPattern(0)->Plate()),
 	  plMax(pvr->GetPattern(nPID - 1)->Plate()),
-	  ntrk(pvr->Ntracks())
+	  ntrk(pvr->Ntracks()),
+	  deltaTXV(), deltaXV(), deltaYV(), deltaTYV(), xV(), yV(), slopeXV(), slopeYV(),
+	  crossTheLineV(), tridV(), nsegV()
 {
 	double bins_arr_angle[] = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
-	SetBinsAngle(26,bins_arr_angle);
+	SetBinsAngle(26, bins_arr_angle);
 	double bins_arr_TXTY[] = {-0.5, -0.45, -0.4, -0.35, -0.3, -0.25, -0.2, -0.19, -0.18, -0.17, -0.16, -0.15, -0.14, -0.13, -0.12, -0.11, -0.10, -0.09, -0.08, -0.07, -0.06, -0.05, -0.04, -0.03, -0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
-	SetBinsTXTY(52,bins_arr_TXTY);
+	SetBinsTXTY(52, bins_arr_TXTY);
 }
 
 void FnuQualityCheck::SetBinsAngle(int nbins, double bins[])
 {
-	bins_vec_angle.assign(&bins[0], &bins[nbins+1]);
+	bins_vec_angle.assign(&bins[0], &bins[nbins + 1]);
 }
 
 void FnuQualityCheck::SetBinsTXTY(int nbins, double bins[])
@@ -78,13 +79,13 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 			{
 				EdbSegP *s = t->GetSegment(iseg);
 				int sPID = s->PID();
-				if(sPID>iPID+2)
+				if (sPID > iPID + 2)
 					break;
-				if(sPID<iPID-2)
+				if (sPID < iPID - 2)
 					continue;
-				x[sPID-iPID+2] = s->X();
-				y[sPID-iPID+2] = s->Y();
-				z[sPID-iPID+2] = s->Z();
+				x[sPID - iPID + 2] = s->X();
+				y[sPID - iPID + 2] = s->Y();
+				z[sPID - iPID + 2] = s->Z();
 				count++;
 				if (sPID == iPID)
 				{
@@ -364,11 +365,11 @@ void FnuQualityCheck::WriteDeltaXY(TString filename)
 void FnuQualityCheck::CalcEfficiency()
 {
 	double bins_angle[bins_vec_angle.size()];
-	std::copy(bins_vec_angle.begin(),bins_vec_angle.end(),bins_angle);
-	int nbins_angle = bins_vec_angle.size()-1;
+	std::copy(bins_vec_angle.begin(), bins_vec_angle.end(), bins_angle);
+	int nbins_angle = bins_vec_angle.size() - 1;
 	double bins_TXTY[bins_vec_TXTY.size()];
 	std::copy(bins_vec_TXTY.begin(), bins_vec_TXTY.end(), bins_TXTY);
-	int nbins_TXTY = bins_vec_TXTY.size()-1;
+	int nbins_TXTY = bins_vec_TXTY.size() - 1;
 
 	pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta", title.Data()), nbins_angle, bins_angle);
 	pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate", title.Data()), plMax - plMin, plMin, plMax);
@@ -402,9 +403,9 @@ void FnuQualityCheck::CalcEfficiency()
 			{
 				EdbSegP *s = t->GetSegment(iseg);
 				int sPID = s->PID();
-				if (sPID > iPID+2)
+				if (sPID > iPID + 2)
 					break;
-				if (sPID < iPID-2)
+				if (sPID < iPID - 2)
 					continue;
 				if (sPID == iPID - 2 || sPID == iPID + 2)
 					counts++;
@@ -450,7 +451,7 @@ void FnuQualityCheck::PlotEfficiency(TString filename)
 {
 	// Plot efficiencies and print them.
 	TCanvas *c = new TCanvas();
-	c->Print(filename+"[");
+	c->Print(filename + "[");
 	c->SetLogy(1);
 	pEff_angle->GetCopyTotalHisto()->Draw();
 	c->Print(filename);
@@ -476,7 +477,7 @@ void FnuQualityCheck::PlotEfficiency(TString filename)
 	pEff_TY->Draw();
 	c->Print(filename);
 
-	c->Print(filename+"]");
+	c->Print(filename + "]");
 }
 
 void FnuQualityCheck::WriteEfficiencyTree(TString filename)
