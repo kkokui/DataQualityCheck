@@ -352,7 +352,18 @@ int FnuDivideAlign::Align(TObjArray *tracks, double Xcenter, double Ycenter, int
 	alignPar->Branch("pid", &pidBranchValue);
 	int ntrk = tracks->GetEntriesFast();
 
-	// Divide the area into binWidth*binWidth mm^2 areas
+	double angleXSum = 0;
+	double angleYSum = 0;
+	for (int itrk = 0; itrk < ntrk; itrk++)
+	{
+		EdbTrackP *t = (EdbTrackP*)tracks->At(itrk);
+		angleXSum += t->TX();
+		angleYSum += t->TY();
+	}
+	double angleXMean = angleXSum/ntrk;
+	double angleYMean = angleYSum/ntrk;
+
+	// Divide the area into binWidth*binWidth um^2 areas
 	for (iYBranchValue = Ycenter - rangeXY + binWidth / 2; iYBranchValue <= Ycenter + rangeXY; iYBranchValue += binWidth)
 	{
 		for (iXBranchValue = Xcenter - rangeXY + binWidth / 2; iXBranchValue <= Xcenter + rangeXY; iXBranchValue += binWidth)
@@ -362,7 +373,7 @@ int FnuDivideAlign::Align(TObjArray *tracks, double Xcenter, double Ycenter, int
 			for (int itrk = 0; itrk < ntrk; itrk++)
 			{
 				EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
-				if (t->N() < 10 || abs(t->TX() + 0.01) >= 0.01 || abs(t->TY() - 0.004) >= 0.01)
+				if (t->N() < 10 || abs(t->TX() -angleXMean) >= 0.01 || abs(t->TY() - angleYMean) >= 0.01)
 				{
 					continue;
 				}
