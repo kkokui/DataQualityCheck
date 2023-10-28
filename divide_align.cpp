@@ -2,20 +2,22 @@
 #include <EdbDataSet.h>
 int main(int argc, char *argv[])
 {
-	if(argc<7)
+	if (argc < 6)
 	{
-		printf("Usage: ./calc_dxy linked_tracks.root title Xcenter Ycenter bin_width robustfactor\n");
+		printf("Usage: ./calc_dxy linked_tracks.root title reco binWidth robustFactor\n");
 		return 1;
 	}
 
 	TString filename_linked_tracks = argv[1];
 	TString title = argv[2];
-	double Xcenter, Ycenter, bin_width;
-    float robustfactor;
-	sscanf(argv[3], "%lf", &Xcenter);
-	sscanf(argv[4], "%lf", &Ycenter);
-	sscanf(argv[5], "%lf", &bin_width);
-	sscanf(argv[6], "%f", &robustfactor);
+	double binWidth;
+	float robustFactor;
+	int reco;
+	sscanf(argv[3], "%d", &reco);
+	double Xcenter = (reco - 1) % 9 * 15000 + 5000;
+	double Ycenter = (reco - 1) / 9 * 15000 + 5000;
+	sscanf(argv[4], "%lf", &binWidth);
+	sscanf(argv[5], "%f", &robustFactor);
 
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
@@ -24,23 +26,26 @@ int main(int argc, char *argv[])
 	TObjArray *tracks = pvr->GetTracks();
 	int nPatterns = pvr->Npatterns();
 	int ntrk = tracks->GetEntriesFast();
-	
+
 	if (ntrk == 0)
 	{
 		printf("ntrk==0\n");
 		return 0;
 	}
-	
-	EdbTrackP *t0 = (EdbTrackP*)tracks->At(0);
-	t0->PrintNice();
 
 	FnuDivideAlign align;
-	align.SetRobustFactor(robustfactor);
-	align.SetBinWidth(bin_width);
-	align.Align(tracks, Xcenter, Ycenter,nPatterns);
-	align.WriteAlignPar("alignPar_"+title + ".root");
+	align.SetRobustFactor(robustFactor);
+	align.SetBinWidth(binWidth);
+	align.Align(tracks, Xcenter, Ycenter, nPatterns);
+	align.WriteAlignPar("align_output/alignPar_" + title + ".root");
 
-	t0->PrintNice();
+	TObjArray *tracks_t = new TObjArray;
+	for (int itrk = 0; itrk < ntrk; itrk++)
+	{
+		EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
+		tracks_t->Add(t);
+	}
+	dproc->MakeTracksTree(*tracks_t, 0, 0, Form("/data/Users/kokui/FASERnu/F222/zone4/temp/TFD/vert32063_pl053_167_new/reco32_065000_050000/v15/linked_tracks_after_align_binWidth%.0f_robustFactor%.1f.root", binWidth, robustFactor));
 
 	return 0;
 }
