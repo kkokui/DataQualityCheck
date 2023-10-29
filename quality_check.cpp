@@ -1,4 +1,4 @@
-#include "FnuQualityCheck.h"
+#include <FnuQualityCheck.h>
 
 #include <stdio.h>
 
@@ -36,13 +36,15 @@ int main(int argc, char *argv[])
 	FnuQualityCheck qc(pvr, title);
 	qc.CalcDeltaXY(Xcenter, Ycenter, bin_width);
 	qc.FitDeltaXY();
+	qc.MakePosResGraphHist();
 	qc.PlotPosRes("pos_res/sigmaPar_" + title + ".pdf");
+	qc.WritePosResGraphHist("pos_res/graph_hist_" +title + ".root");
 	// qc.PrintDeltaXYHist("pos_res/deltaxy_" + title + ".pdf");
 	// qc.WritePosResPar("pos_res/sigmaPar_" + title + ".root");
 	qc.WriteDeltaXY("deltaXY/tree_" + title + ".root");
-	qc.CalcEfficiency();
-	qc.PlotEfficiency("efficiency_output/hist_efficiency_" + title + ".pdf");
-	qc.WriteEfficiency("efficiency_output/efficiency_" + title + ".root");
+	// qc.CalcEfficiency();
+	// qc.PlotEfficiency("efficiency_output/hist_efficiency_" + title + ".pdf");
+	// qc.WriteEfficiency("efficiency_output/efficiency_" + title + ".root");
 	// qc.WriteEfficiencyTree(Form("efficiency_output/effinfo_%s.root", title.Data()));
 
 	return 0;

@@ -16,6 +16,8 @@ private:
     double XYrange;
     int plMin;
     int plMax;
+    TGraph *meanXGraph, *meanYGraph, *sigmaXGraph, *sigmaYGraph;
+    TH1D *sigmaXHist, *sigmaYHist;
     std::vector<double> bins_vec_angle;
     std::vector<double> bins_vec_TXTY;
     TEfficiency *pEff_angle, *pEff_plate, *pEff_TX, *pEff_TY;
@@ -34,10 +36,11 @@ public:
     FnuQualityCheck(EdbPVRec *pvr, TString title);
     ~FnuQualityCheck();
     // methods for position resolution
-    // void CalcDeltaXYFromRootFile(TString fname = "linked_tracks.root", double Xcenter, double Ycenter, TCut cut = "nseg>=5", double bin_width);
     void CalcDeltaXY(double Xcenter, double Ycenter, double bin_width);
     void FitDeltaXY();
     void CalcLSM(double x[], double y[], int N, double &a0, double &a1);
+    void MakePosResGraphHist();
+    void WritePosResGraphHist(TString filename);
     void PlotPosRes(TString filename);
     void WritePosResPar(TString filename);
     void WriteDeltaXY(TString filename);

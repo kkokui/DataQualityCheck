@@ -250,78 +250,95 @@ void FnuQualityCheck::CalcLSM(double x[], double y[], int N, double &a0, double 
 	a0 = (A02 * A11 - A01 * A12) / (A00 * A11 - A01 * A01);
 	a1 = (A00 * A12 - A01 * A02) / (A00 * A11 - A01 * A01);
 }
+void FnuQualityCheck::MakePosResGraphHist()
+{
+	// Make graphs and histograms about position resolution.
+	// This makes graphs of mean:plate, histograms of position resolution and graphs of position resolution : plate.
+	// meanX and meanY : plate
+	posResPar->Draw("meanX:plate");
+	int N = posResPar->GetSelectedRows();
+	meanXGraph = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
+	meanXGraph->SetMarkerStyle(20);
+	meanXGraph->SetMarkerColor(kRed);
+	meanXGraph->SetNameTitle("meanYGraph", "mean Y (" + title + ");plate;mean (#mum)");
+	posResPar->Draw("meanY:plate");
+	N = posResPar->GetSelectedRows();
+	meanYGraph = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
+	meanYGraph->SetMarkerStyle(20);
+	meanYGraph->SetMarkerColor(kBlue);
+	meanYGraph->SetNameTitle("meanXGraph", "mean X (" + title + ");plate;mean (#mum)");
 
+	// sigmaX and sigmaY
+	sigmaXHist = new TH1D("sigmaXHist","position resolution X (" + title + ");position resolution (#mum)",100,0,1);
+	posResPar->Draw("sigmaX>>sigmaXHist", "abs(meanX)<100&&entries>0");
+	sigmaYHist = new TH1D("sigmaYHist","position resolution Y (" + title + ");position resolution (#mum)",100,0,1);
+	posResPar->Draw("sigmaY>>sigmaYHist", "abs(meanY)<100&&entries>0");
+
+	// sigmaX and sigmaY:pl
+	posResPar->Draw("sigmaX:plate");
+	N = posResPar->GetSelectedRows();
+	sigmaXGraph = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
+	sigmaXGraph->SetMarkerStyle(20);
+	sigmaXGraph->SetMarkerColor(kRed);
+	sigmaXGraph->SetNameTitle("sigmaXGraph", "position resolution X (" + title + ");plate;position resolution (#mum)");
+	posResPar->Draw("sigmaY:plate");
+	N = posResPar->GetSelectedRows();
+	sigmaYGraph = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
+	sigmaYGraph->SetMarkerStyle(20);
+	sigmaYGraph->SetMarkerColor(kBlue);
+	sigmaYGraph->SetNameTitle("sigmaYGraph", "position resolution Y (" + title + ");plate;position resolution (#mum)");
+}
+
+void FnuQualityCheck::WritePosResGraphHist(TString filename)
+{
+	// write graphs and histograms about position resolution to file.
+	TFile fout(filename, "recreate");
+	meanXGraph->Write();
+	meanYGraph->Write();
+	sigmaXHist->Write();
+	sigmaYHist->Write();
+	sigmaXGraph->Write();
+	sigmaYGraph->Write();
+	fout.Close();
+}
 void FnuQualityCheck::PlotPosRes(TString filename)
 {
 	// int plMax = posResPar->GetMaximum("pl");
 	// int plMin = posResPar->GetMinimum("pl");
 	TCanvas *c1 = new TCanvas();
-	// c1->Print("pos_res/sigmaPar_" + title + ".pdf[");
 	c1->Print(filename + "[");
-	posResPar->Draw("meanY:plate");
-	int N = posResPar->GetSelectedRows();
-	TGraph *grY = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
+
+	// meanX and meanY : plate
 	c1->SetGridx(1);
-	grY->SetMarkerStyle(20);
-	grY->SetMarkerColor(kBlue);
-	grY->SetTitle("meanY");
-	posResPar->Draw("meanX:plate");
-	N = posResPar->GetSelectedRows();
-	TGraph *grX = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
-	grX->SetMarkerStyle(20);
-	grX->SetMarkerColor(kRed);
-	grX->SetTitle("meanX");
 	TMultiGraph *mg = new TMultiGraph("mg", "mean:plate " + title + ";plate;mean (#mum)");
-	mg->Add(grX);
-	mg->Add(grY);
-	// TH2D *fr = new TH2D("fr", "mean:plate (" + title + ");plate;mean (#mum)", 10, plMin, plMax, 10, -0.26, 0.26);
-	// fr->Draw();
-	// fr->SetStats(0);
+	mg->Add(meanXGraph);
+	mg->Add(meanYGraph);
 	mg->Draw("ap");
 	TLegend *leg = new TLegend(0.9, 0.8, 1.0, 0.9);
-	leg->AddEntry(grX, "", "p");
-	leg->AddEntry(grY, "", "p");
+	leg->AddEntry(meanXGraph, "meanX", "p");
+	leg->AddEntry(meanYGraph, "meanY", "p");
 	leg->Draw();
 	c1->Print(filename);
-	// sigmaX
 	c1->SetGridx(0);
-	posResPar->Draw("sigmaX>>h1(100,0,1)", "abs(meanX)<100&&entries>0");
-	TH1F *h1 = (TH1F *)gDirectory->Get("h1");
-	// sigmaY
-	posResPar->Draw("sigmaY>>h2(100,0,1)", "abs(meanY)<100&&entries>0");
-	TH1F *h2 = (TH1F *)gDirectory->Get("h2");
-	// merge sigmaX and sigmaY
+	
+	// sigmaX and sigmaY
 	TList *l = new TList;
-	l->Add(h1);
-	l->Add(h2);
-	TH1F *h = new TH1F("Sigma", "position resolution (" + title + ");position resolution (#mum);number of areas", 100, 0, 1);
-	h->Merge(l);
-	h->Draw();
+	l->Add(sigmaXHist);
+	l->Add(sigmaYHist);
+	TH1F *resolution = new TH1F("resolution", "position resolution (" + title + ");position resolution (#mum)", 100, 0, 1);
+	resolution->Merge(l);
+	resolution->Draw();
 	c1->Print(filename);
+
 	// sigmaX and sigmaY:pl
 	c1->SetGridx(1);
-	posResPar->Draw("sigmaX:plate");
-	N = posResPar->GetSelectedRows();
-	TGraph *grsigX = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
-	grsigX->SetMarkerStyle(20);
-	grsigX->SetMarkerColor(kRed);
-	grsigX->SetTitle("sigmaX");
-	posResPar->Draw("sigmaY:plate");
-	N = posResPar->GetSelectedRows();
-	TGraph *grsigY = new TGraph(N, posResPar->GetV2(), posResPar->GetV1());
-	grsigY->SetMarkerStyle(20);
-	grsigY->SetMarkerColor(kBlue);
-	grsigY->SetTitle("sigmaY");
 	TMultiGraph *mg2 = new TMultiGraph("mg2", "sigma:plate (" + title + ");plate;sigma (#mum)");
-	mg2->Add(grsigX);
-	mg2->Add(grsigY);
-	// TH2D *fr = new TH2D("fr",";plate;",10,0,52,10,-1.5,1.5);
-	// fr->Draw();
-	// fr->SetStats(0);
+	mg2->Add(sigmaXGraph);
+	mg2->Add(sigmaYGraph);
 	mg2->Draw("ap");
 	TLegend *leg2 = new TLegend(0.9, 0.8, 1.0, 0.9);
-	leg2->AddEntry(grsigX, "", "p");
-	leg2->AddEntry(grsigY, "", "p");
+	leg2->AddEntry(sigmaXGraph, "resolutionX", "p");
+	leg2->AddEntry(sigmaYGraph, "resolutionY", "p");
 	leg2->Draw();
 	c1->Print(filename);
 	c1->Clear();
