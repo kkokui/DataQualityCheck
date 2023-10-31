@@ -21,6 +21,7 @@ private:
     std::vector<double> bins_vec_angle;
     std::vector<double> bins_vec_TXTY;
     TEfficiency *pEff_angle, *pEff_plate, *pEff_TX, *pEff_TY;
+    TH2D *positionHist;
     // variables for TTree
     int plate;
     std::vector<double> *deltaXV, *deltaYV, *deltaTXV, *deltaTYV, *xV, *yV, *slopeXV, *slopeYV;
@@ -52,4 +53,6 @@ public:
     void PlotEfficiency(TString filename);
     void WriteEfficiencyTree(TString filename);
     void WriteEfficiency(TString filename);
+    // methods for position distribution.
+    void MakePositionHist();
 };

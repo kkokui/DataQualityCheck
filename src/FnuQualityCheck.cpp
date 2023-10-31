@@ -269,9 +269,9 @@ void FnuQualityCheck::MakePosResGraphHist()
 	meanYGraph->SetNameTitle("meanXGraph", "mean X (" + title + ");plate;mean (#mum)");
 
 	// sigmaX and sigmaY
-	sigmaXHist = new TH1D("sigmaXHist","position resolution X (" + title + ");position resolution (#mum)",100,0,1);
+	sigmaXHist = new TH1D("sigmaXHist", "position resolution X (" + title + ");position resolution (#mum)", 100, 0, 1);
 	posResPar->Draw("sigmaX>>sigmaXHist", "abs(meanX)<100&&entries>0");
-	sigmaYHist = new TH1D("sigmaYHist","position resolution Y (" + title + ");position resolution (#mum)",100,0,1);
+	sigmaYHist = new TH1D("sigmaYHist", "position resolution Y (" + title + ");position resolution (#mum)", 100, 0, 1);
 	posResPar->Draw("sigmaY>>sigmaYHist", "abs(meanY)<100&&entries>0");
 
 	// sigmaX and sigmaY:pl
@@ -320,7 +320,7 @@ void FnuQualityCheck::PlotPosRes(TString filename)
 	leg->Draw();
 	c1->Print(filename);
 	c1->SetGridx(0);
-	
+
 	// sigmaX and sigmaY
 	TList *l = new TList;
 	l->Add(sigmaXHist);
@@ -512,4 +512,38 @@ void FnuQualityCheck::WriteEfficiency(TString filename)
 	pEff_TX->Write();
 	pEff_TY->Write();
 	fout.Close();
+}
+
+void FnuQualityCheck::MakePositionHist()
+{
+	std::vector<double> positionXVec;
+	std::vector<double> positionYVec;
+	positionXVec.reserve(ntrk);
+	positionYVec.reserve(ntrk);
+	for (int itrk = 0; itrk < ntrk; itrk++)
+	{
+		EdbTrackP *t = pvr->GetTrack(itrk);
+		if (5 < t->N())
+			continue;
+		double X = t->X();
+		double Y = t->Y();
+		positionXVec.push_back(X);
+		positionYVec.push_back(Y);
+	}
+	auto maxminXIterator = std::minmax_element(positionXVec.begin(), positionXVec.end());
+	auto maxminYIterator = std::minmax_element(positionYVec.begin(), positionYVec.end());
+	double minX = *maxminXIterator.first;
+	double maxX = *maxminXIterator.first;
+	double minY = *maxminYIterator.first;
+	double maxY = *maxminYIterator.first;
+	double marginX = (maxX - minX) / 10;
+	double marginY = (maxY - minY) / 10;
+	positionHist = new TH2D("positionHist", "position distribution (" + title + ");x (#mum);y (#mum);entries", 100, minX - marginX, maxX + marginX, 100, minY - marginY, maxY + marginX);
+	for (int itrk = 0; itrk < positionXVec.size(); itrk++)
+	{
+		positionHist->Fill(positionXVec.at(itrk), positionYVec.at(itrk));
+	}
+	TCanvas ctemp;
+	positionHist->Draw("colz");
+	ctemp.Print("position_distribution_test.pdf");
 }
