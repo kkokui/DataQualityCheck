@@ -301,7 +301,7 @@ void FnuQualityCheck::WritePosResGraphHist(TString filename)
 	sigmaYGraph->Write();
 	fout.Close();
 }
-void FnuQualityCheck::PlotPosRes(TString filename)
+void FnuQualityCheck::PrintPosResGraphHist(TString filename)
 {
 	// int plMax = posResPar->GetMaximum("pl");
 	// int plMin = posResPar->GetMinimum("pl");
@@ -533,17 +533,44 @@ void FnuQualityCheck::MakePositionHist()
 	auto maxminXIterator = std::minmax_element(positionXVec.begin(), positionXVec.end());
 	auto maxminYIterator = std::minmax_element(positionYVec.begin(), positionYVec.end());
 	double minX = *maxminXIterator.first;
-	double maxX = *maxminXIterator.first;
+	double maxX = *maxminXIterator.second;
 	double minY = *maxminYIterator.first;
-	double maxY = *maxminYIterator.first;
+	double maxY = *maxminYIterator.second;
 	double marginX = (maxX - minX) / 10;
 	double marginY = (maxY - minY) / 10;
-	positionHist = new TH2D("positionHist", "position distribution (" + title + ");x (#mum);y (#mum);entries", 100, minX - marginX, maxX + marginX, 100, minY - marginY, maxY + marginX);
+	double minXAxis = minX - marginX;
+	double maxXAxis = maxX + marginX;
+	double minYAxis = minY - marginY;
+	double maxYAxis = maxY + marginY;
+
+	positionHist = new TH2D("positionHist", "position distribution (" + title + ");x (#mum);y (#mum);entries", 100, minXAxis, maxXAxis, 100, minYAxis, maxYAxis);
+	double area = (maxXAxis-minXAxis)/100/10000*(maxYAxis-minYAxis)/100/10000; // in cm^2
 	for (int itrk = 0; itrk < positionXVec.size(); itrk++)
 	{
-		positionHist->Fill(positionXVec.at(itrk), positionYVec.at(itrk));
+		positionHist->Fill(positionXVec.at(itrk), positionYVec.at(itrk), 1/area);
+		
 	}
+}
+void FnuQualityCheck::PrintPositionHist(TString filename)
+{
 	TCanvas ctemp;
+	ctemp.SetRightMargin(0.15);
 	positionHist->Draw("colz");
-	ctemp.Print("position_distribution_test.pdf");
+	positionHist->SetStats(0);
+	positionHist->GetYaxis()->SetTitleOffset(1.5);
+	ctemp.Print(filename);
+}
+void FnuQualityCheck::WritePositionHist(TString filename)
+{
+	TFile fout(filename, "recreate");
+	positionHist->Write();
+	fout.Close();
+}
+void FnuQualityCheck::PrintSummaryPlot()
+{
+	TCanvas c("c","summary plot",2500,1000);
+	c.Divide(4,2);
+	c.cd(1);
+	positionHist->Draw("colz");
+	c.Print("summary_plot_test.pdf");
 }

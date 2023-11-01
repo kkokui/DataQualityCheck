@@ -22,8 +22,8 @@ int main(int argc, char *argv[])
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
 
-	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=4");
-	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
+	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=4");
+	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
 
 	TObjArray *tracks = pvr->GetTracks();
 	int ntrk = tracks->GetEntriesFast();
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 	// qc.CalcDeltaXY(Xcenter, Ycenter, bin_width);
 	// qc.FitDeltaXY();
 	// qc.MakePosResGraphHist();
-	// qc.PlotPosRes("pos_res/sigmaPar_" + title + ".pdf");
+	// qc.PrintPosResGraphHist("pos_res/sigmaPar_" + title + ".pdf");
 	// qc.WritePosResGraphHist("pos_res/graph_hist_" +title + ".root");
 	// qc.PrintDeltaXYHist("pos_res/deltaxy_" + title + ".pdf");
 	// qc.WritePosResPar("pos_res/sigmaPar_" + title + ".root");
@@ -47,5 +47,8 @@ int main(int argc, char *argv[])
 	// qc.WriteEfficiency("efficiency_output/efficiency_" + title + ".root");
 	// qc.WriteEfficiencyTree(Form("efficiency_output/effinfo_%s.root", title.Data()));
 	qc.MakePositionHist();
+	qc.PrintPositionHist("position_distribution_"+title+".pdf");
+	qc.WritePositionHist("position_distribution_"+title+".root");
+	qc.PrintSummaryPlot();
 	return 0;
 }

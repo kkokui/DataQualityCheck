@@ -42,7 +42,7 @@ public:
     void CalcLSM(double x[], double y[], int N, double &a0, double &a1);
     void MakePosResGraphHist();
     void WritePosResGraphHist(TString filename);
-    void PlotPosRes(TString filename);
+    void PrintPosResGraphHist(TString filename);
     void WritePosResPar(TString filename);
     void WriteDeltaXY(TString filename);
     void PrintDeltaXYHist(TString filename);
@@ -55,4 +55,7 @@ public:
     void WriteEfficiency(TString filename);
     // methods for position distribution.
     void MakePositionHist();
+    void PrintPositionHist(TString filename);
+    void WritePositionHist(TString filename);
+    void PrintSummaryPlot();
 };
