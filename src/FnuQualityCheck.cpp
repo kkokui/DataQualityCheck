@@ -10,12 +10,15 @@
 #include <EdbPattern.h>
 #include <TMath.h>
 #include <TStyle.h>
+#include <TROOT.h>
+#include <TGaxis.h>
 #include <TCanvas.h>
 #include <TSystem.h>
 #include <TLegend.h>
 #include <TMultiGraph.h>
 #include <TEventList.h>
 #include <TGraphAsymmErrors.h>
+#include <TPaletteAxis.h>
 
 FnuQualityCheck::FnuQualityCheck(EdbPVRec *pvr, TString title)
 	: pvr(pvr),
@@ -388,10 +391,10 @@ void FnuQualityCheck::CalcEfficiency()
 	std::copy(bins_vec_TXTY.begin(), bins_vec_TXTY.end(), bins_TXTY);
 	int nbins_TXTY = bins_vec_TXTY.size() - 1;
 
-	pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta", title.Data()), nbins_angle, bins_angle);
-	pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate", title.Data()), plMax - plMin, plMin, plMax);
-	pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
-	pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta", title.Data()), nbins_TXTY, bins_TXTY);
+	pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta;efficiency", title.Data()), nbins_angle, bins_angle);
+	pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate;efficiency", title.Data()), plMax - plMin, plMin, plMax);
+	pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
+	pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
 
 	effInfo = new TTree("effInfo", "efficiency infomation");
 	effInfo->Branch("trackID", &trackID);
@@ -543,7 +546,7 @@ void FnuQualityCheck::MakePositionHist()
 	double minYAxis = minY - marginY;
 	double maxYAxis = maxY + marginY;
 
-	positionHist = new TH2D("positionHist", "position distribution (" + title + ");x (#mum);y (#mum);entries", 100, minXAxis, maxXAxis, 100, minYAxis, maxYAxis);
+	positionHist = new TH2D("positionHist", "position distribution (" + title + ");x (#mum);y (#mum);Ntracks / cm^{2}", 100, minXAxis, maxXAxis, 100, minYAxis, maxYAxis);
 	double area = (maxXAxis-minXAxis)/100/10000*(maxYAxis-minYAxis)/100/10000; // in cm^2
 	for (int itrk = 0; itrk < positionXVec.size(); itrk++)
 	{
@@ -566,11 +569,147 @@ void FnuQualityCheck::WritePositionHist(TString filename)
 	positionHist->Write();
 	fout.Close();
 }
+void FnuQualityCheck::MakeAngleHist()
+{
+	std::vector<double> angleXVec;
+	std::vector<double> angleYVec;
+	angleXVec.reserve(ntrk);
+	angleYVec.reserve(ntrk);
+	// loop over the tracks
+	for (int itrk = 0; itrk < ntrk; itrk++)
+	{
+		EdbTrackP *t = pvr->GetTrack(itrk);
+		int nseg = t->N();
+		// cut is nseg>=5
+		if (5 < nseg)
+			continue;
+		// loop over the segments
+		double X[nseg];
+		double Y[nseg];
+		double Z[nseg];
+		for(int iseg = 0;iseg<nseg;iseg++)
+		{
+			X[iseg] = t->GetSegment(iseg)->X();
+			Y[iseg] = t->GetSegment(iseg)->Y();
+			Z[iseg] = t->GetSegment(iseg)->Z();
+		}
+		double TX,TY,a0;
+		CalcLSM(Z,X,nseg,a0,TX);
+		CalcLSM(Z,Y,nseg,a0,TY);
+		angleXVec.push_back(TX);
+		angleYVec.push_back(TY);
+	}
+	const auto angleXMean = std::accumulate(angleXVec.begin(), angleXVec.end(), 0.0) / angleXVec.size();
+	const auto angleYMean = std::accumulate(angleYVec.begin(), angleYVec.end(), 0.0) / angleYVec.size();
+	double halfRangeNarrow = 0.008;
+	double minXAxisNarrow = angleXMean - halfRangeNarrow;
+	double maxXAxisNarrow = angleXMean + halfRangeNarrow;
+	double minYAxisNarrow = angleYMean - halfRangeNarrow;
+	double maxYAxisNarrow = angleYMean + halfRangeNarrow;
+	double halfRangeWide = 0.3;
+	double minXAxisWide = angleXMean - halfRangeWide;
+	double maxXAxisWide = angleXMean + halfRangeWide;
+	double minYAxisWide = angleYMean - halfRangeWide;
+	double maxYAxisWide = angleYMean + halfRangeWide;
+	angleHistNarrow = new TH2D("angleHistNarrow", "angle distribution narrow (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisNarrow, maxXAxisNarrow, 200, minYAxisNarrow, maxYAxisNarrow);
+	angleHistWide = new TH2D("angleHistWide", "angle distribution wide (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisWide, maxXAxisWide, 200, minYAxisWide, maxYAxisWide);
+	for (int itrk = 0; itrk < angleXVec.size(); itrk++)
+	{
+		angleHistNarrow->Fill(angleXVec.at(itrk), angleYVec.at(itrk));
+		angleHistWide->Fill(angleXVec.at(itrk), angleYVec.at(itrk));
+	}
+}
+void FnuQualityCheck::PrintAngleHist(TString filename)
+{
+	TCanvas ctemp;
+	ctemp.Print(filename+"[");
+	ctemp.SetRightMargin(0.15);
+	angleHistNarrow->Draw("colz");
+	angleHistNarrow->SetStats(0);
+	angleHistNarrow->GetYaxis()->SetTitleOffset(1.5);
+	ctemp.Print(filename);
+	ctemp.SetLogz();
+	angleHistWide->Draw("colz");
+	angleHistWide->SetStats(0);
+	angleHistWide->GetYaxis()->SetTitleOffset(1.5);
+	ctemp.Print(filename);
+	ctemp.Print(filename + "]");
+}
+void FnuQualityCheck::WriteAngleHist(TString filename)
+{
+	TFile fout(filename, "recreate");
+	angleHistNarrow->Write();
+	angleHistWide->Write();
+	fout.Close();
+}
+
 void FnuQualityCheck::PrintSummaryPlot()
 {
+	gStyle->SetPadLeftMargin(0.1);
+	gStyle->SetPadBottomMargin(0.12);
+	gStyle->SetPadTopMargin(0.07);
+	gStyle->SetTitleOffset(0.8, "Y");
+	gStyle->SetTitleOffset(1.0, "Z");
+	gStyle->SetTitleSize(0.06, "XYZ");
+	gStyle->SetLabelSize(0.05, "XYZ");
 	TCanvas c("c","summary plot",2500,1000);
 	c.Divide(4,2);
 	c.cd(1);
+	// gPad->SetRightMargin(0.4);
+	gStyle->SetPadRightMargin(0.25);
+	gStyle->SetOptStat("emr");
+	gStyle->SetStatH(0.25);
+	gStyle->SetStatW(0.25);
+	gStyle->SetStatX(1);
+	gStyle->SetStatY(1);
 	positionHist->Draw("colz");
+	gPad->UseCurrentStyle();
+	gPad->Update();
+	// gStyle->SetPadLeftMargin(0.15);
+	// gStyle->SetTitleOffset(1.5, "Y");
+	((TGaxis *)positionHist->GetXaxis())->SetMaxDigits(3);
+	((TGaxis *)positionHist->GetYaxis())->SetMaxDigits(3);
+	TPaletteAxis *palette = (TPaletteAxis *)positionHist->GetListOfFunctions()->FindObject("palette");
+	palette->SetX1NDC(0.845);
+	palette->SetX2NDC(0.88);
+	palette->SetY2NDC(0.68);
+	// gPad->RedrawAxis();
+	gPad->UseCurrentStyle();
+
+	c.cd(2);
+	gStyle->SetPadRightMargin(0.25);
+	angleHistNarrow->Draw("colz");
+	gPad->UseCurrentStyle();
+	gPad->Update();
+	palette = (TPaletteAxis *)angleHistNarrow->GetListOfFunctions()->FindObject("palette");
+	palette->SetX1NDC(0.845);
+	palette->SetX2NDC(0.88);
+	palette->SetY2NDC(0.68);
+	gPad->UseCurrentStyle();
+
+	c.cd(3);
+	gPad->SetRightMargin(0.0);
+	pEff_angle->Draw();
+
+	c.cd(4);
+	gPad->SetRightMargin(0.0);
+	pEff_plate->Draw();
+
+	c.cd(5);
+	c.SetGridx(1);
+	gPad->SetRightMargin(0.0);
+	gPad->SetTopMargin(0.15);
+	TMultiGraph *mg2 = new TMultiGraph("mg2", "sigma:plate (" + title + ");plate;sigma (#mum)");
+	sigmaXGraph->SetMarkerSize(0.5);
+	sigmaYGraph->SetMarkerSize(0.5);
+	mg2->Add(sigmaXGraph);
+	mg2->Add(sigmaYGraph);
+	mg2->Draw("ap");
+	TLegend *leg2 = new TLegend(0.2, 0.85, 1.0, 0.93);
+	leg2->AddEntry(sigmaXGraph, "resolutionX", "p");
+	leg2->AddEntry(sigmaYGraph, "resolutionY", "p");
+	leg2->SetNColumns(2);
+	leg2->Draw();
+
 	c.Print("summary_plot_test.pdf");
 }

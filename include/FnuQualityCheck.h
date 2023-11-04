@@ -22,6 +22,9 @@ private:
     std::vector<double> bins_vec_TXTY;
     TEfficiency *pEff_angle, *pEff_plate, *pEff_TX, *pEff_TY;
     TH2D *positionHist;
+    TH2D *angleHistWide;
+    TH2D *angleHistNarrow;
+
     // variables for TTree
     int plate;
     std::vector<double> *deltaXV, *deltaYV, *deltaTXV, *deltaTYV, *xV, *yV, *slopeXV, *slopeYV;
@@ -57,5 +60,9 @@ public:
     void MakePositionHist();
     void PrintPositionHist(TString filename);
     void WritePositionHist(TString filename);
+    // methods for angle distribution.
+    void MakeAngleHist();
+    void PrintAngleHist(TString filename);
+    void WriteAngleHist(TString filename);
     void PrintSummaryPlot();
 };
