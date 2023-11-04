@@ -393,7 +393,7 @@ void FnuQualityCheck::CalcEfficiency()
 	int nbins_TXTY = bins_vec_TXTY.size() - 1;
 
 	pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta;efficiency", title.Data()), nbins_angle, bins_angle);
-	pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate;efficiency", title.Data()), plMax - plMin, plMin, plMax);
+	pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate;efficiency", title.Data()), plMax - plMin+1, plMin-0.5, plMax+0.5);
 	pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
 	pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
 
@@ -468,7 +468,7 @@ void FnuQualityCheck::CalcEfficiency()
 	}
 }
 
-void FnuQualityCheck::PlotEfficiency(TString filename)
+void FnuQualityCheck::PrintEfficiency(TString filename)
 {
 	// Plot efficiencies and print them.
 	TCanvas *c = new TCanvas();
@@ -645,7 +645,7 @@ void FnuQualityCheck::WriteAngleHist(TString filename)
 
 void FnuQualityCheck::MakeNsegHist()
 {
-	nsegHist = new TH1D("nsegHist","nseg ("+title+");nseg;Ntracks",nPID,0,nPID);
+	nsegHist = new TH1I("nsegHist","nseg ("+title+");nseg;Ntracks",nPID,0.5,nPID+0.5);
 	for(int itrk = 0;itrk<ntrk;itrk++)
 	{
 		int nseg = pvr->GetTrack(itrk)->N();
@@ -667,7 +667,7 @@ void FnuQualityCheck::WriteNsegHist(TString filename)
 }
 void FnuQualityCheck::MakeNplHist()
 {
-	nplHist = new TH1D("nplHist", "npl (" + title + ");npl;Ntracks", plMax - plMin + 1, 0, plMax - plMin + 1);
+	nplHist = new TH1I("nplHist", "npl (" + title + ");npl;Ntracks", plMax - plMin + 1, 0.5, plMax - plMin + 1.5);
 	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
 		int npl = pvr->GetTrack(itrk)->Npl();
@@ -687,7 +687,18 @@ void FnuQualityCheck::WriteNplHist(TString filename)
 	nplHist->Write();
 	fout.Close();
 }
+void FnuQualityCheck::MakeFirstLastPlateHist()
+{
+	firstPlateHist = new TH1I("firstPlateHist", "first plate (" + title + ");plate;Ntracks", plMax - plMin + 1,plMin-0.5,plMax+0.5);
+}
+void FnuQualityCheck::PrintFirstLastPlateHist(TString filename)
+{
 
+}
+void FnuQualityCheck::WriteFirstLastPlateHist(TString filename)
+{
+
+}
 void FnuQualityCheck::PrintSummaryPlot()
 {
 	gStyle->SetPadLeftMargin(0.1);
