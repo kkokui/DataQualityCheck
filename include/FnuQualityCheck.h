@@ -24,6 +24,8 @@ private:
     TH2D *positionHist;
     TH2D *angleHistWide;
     TH2D *angleHistNarrow;
+    TH1D *nsegHist;
+    TH1D *nplHist;
 
     // variables for TTree
     int plate;
@@ -56,13 +58,22 @@ public:
     void PlotEfficiency(TString filename);
     void WriteEfficiencyTree(TString filename);
     void WriteEfficiency(TString filename);
-    // methods for position distribution.
+    // methods for position distribution
     void MakePositionHist();
     void PrintPositionHist(TString filename);
     void WritePositionHist(TString filename);
-    // methods for angle distribution.
+    // methods for angle distribution
     void MakeAngleHist();
     void PrintAngleHist(TString filename);
     void WriteAngleHist(TString filename);
+    // methods for nseg and npl
+    void MakeNsegHist();
+    void PrintNsegHist(TString filename);
+    void WriteNsegHist(TString filename);
+    void MakeNplHist();
+    void PrintNplHist(TString filename);
+    void WriteNplHist(TString filename);
+
+    // methods for summary plot
     void PrintSummaryPlot();
 };

@@ -54,6 +54,12 @@ int main(int argc, char *argv[])
 	qc.MakeAngleHist();
 	// qc.PrintAngleHist("angle_distribution_"+title+".pdf");
 	// qc.WriteAngleHist("angle_distribution_"+title+".root");
+	qc.MakeNsegHist();
+	qc.PrintNsegHist("nseg_"+title+".pdf");
+	qc.WriteNsegHist("nseg_"+title+".root");
+	qc.MakeNplHist();
+	qc.PrintNplHist("npl_" + title + ".pdf");
+	qc.WriteNplHist("npl_" + title + ".root");
 	qc.PrintSummaryPlot();
 	return 0;
 }

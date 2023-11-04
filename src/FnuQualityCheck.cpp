@@ -19,6 +19,7 @@
 #include <TEventList.h>
 #include <TGraphAsymmErrors.h>
 #include <TPaletteAxis.h>
+#include <TPaveStats.h>
 
 FnuQualityCheck::FnuQualityCheck(EdbPVRec *pvr, TString title)
 	: pvr(pvr),
@@ -547,11 +548,10 @@ void FnuQualityCheck::MakePositionHist()
 	double maxYAxis = maxY + marginY;
 
 	positionHist = new TH2D("positionHist", "position distribution (" + title + ");x (#mum);y (#mum);Ntracks / cm^{2}", 100, minXAxis, maxXAxis, 100, minYAxis, maxYAxis);
-	double area = (maxXAxis-minXAxis)/100/10000*(maxYAxis-minYAxis)/100/10000; // in cm^2
+	double area = (maxXAxis - minXAxis) / 100 / 10000 * (maxYAxis - minYAxis) / 100 / 10000; // in cm^2
 	for (int itrk = 0; itrk < positionXVec.size(); itrk++)
 	{
-		positionHist->Fill(positionXVec.at(itrk), positionYVec.at(itrk), 1/area);
-		
+		positionHist->Fill(positionXVec.at(itrk), positionYVec.at(itrk), 1 / area);
 	}
 }
 void FnuQualityCheck::PrintPositionHist(TString filename)
@@ -587,15 +587,15 @@ void FnuQualityCheck::MakeAngleHist()
 		double X[nseg];
 		double Y[nseg];
 		double Z[nseg];
-		for(int iseg = 0;iseg<nseg;iseg++)
+		for (int iseg = 0; iseg < nseg; iseg++)
 		{
 			X[iseg] = t->GetSegment(iseg)->X();
 			Y[iseg] = t->GetSegment(iseg)->Y();
 			Z[iseg] = t->GetSegment(iseg)->Z();
 		}
-		double TX,TY,a0;
-		CalcLSM(Z,X,nseg,a0,TX);
-		CalcLSM(Z,Y,nseg,a0,TY);
+		double TX, TY, a0;
+		CalcLSM(Z, X, nseg, a0, TX);
+		CalcLSM(Z, Y, nseg, a0, TY);
 		angleXVec.push_back(TX);
 		angleYVec.push_back(TY);
 	}
@@ -622,7 +622,7 @@ void FnuQualityCheck::MakeAngleHist()
 void FnuQualityCheck::PrintAngleHist(TString filename)
 {
 	TCanvas ctemp;
-	ctemp.Print(filename+"[");
+	ctemp.Print(filename + "[");
 	ctemp.SetRightMargin(0.15);
 	angleHistNarrow->Draw("colz");
 	angleHistNarrow->SetStats(0);
@@ -643,6 +643,51 @@ void FnuQualityCheck::WriteAngleHist(TString filename)
 	fout.Close();
 }
 
+void FnuQualityCheck::MakeNsegHist()
+{
+	nsegHist = new TH1D("nsegHist","nseg ("+title+");nseg;Ntracks",nPID,0,nPID);
+	for(int itrk = 0;itrk<ntrk;itrk++)
+	{
+		int nseg = pvr->GetTrack(itrk)->N();
+		nsegHist->Fill(nseg);
+	}
+}
+void FnuQualityCheck::PrintNsegHist(TString filename)
+{
+	TCanvas ctemp;
+	gPad->SetLogy();
+	nsegHist->Draw();
+	ctemp.Print(filename);
+}
+void FnuQualityCheck::WriteNsegHist(TString filename)
+{
+	TFile fout(filename, "recreate");
+	nsegHist->Write();
+	fout.Close();
+}
+void FnuQualityCheck::MakeNplHist()
+{
+	nplHist = new TH1D("nplHist", "npl (" + title + ");npl;Ntracks", plMax - plMin + 1, 0, plMax - plMin + 1);
+	for (int itrk = 0; itrk < ntrk; itrk++)
+	{
+		int npl = pvr->GetTrack(itrk)->Npl();
+		nplHist->Fill(npl);
+	}
+}
+void FnuQualityCheck::PrintNplHist(TString filename)
+{
+	TCanvas ctemp;
+	gPad->SetLogy();
+	nplHist->Draw();
+	ctemp.Print(filename);
+}
+void FnuQualityCheck::WriteNplHist(TString filename)
+{
+	TFile fout(filename, "recreate");
+	nplHist->Write();
+	fout.Close();
+}
+
 void FnuQualityCheck::PrintSummaryPlot()
 {
 	gStyle->SetPadLeftMargin(0.1);
@@ -652,8 +697,8 @@ void FnuQualityCheck::PrintSummaryPlot()
 	gStyle->SetTitleOffset(1.0, "Z");
 	gStyle->SetTitleSize(0.06, "XYZ");
 	gStyle->SetLabelSize(0.05, "XYZ");
-	TCanvas c("c","summary plot",2500,1000);
-	c.Divide(4,2);
+	TCanvas c("c", "summary plot", 2500, 1000);
+	c.Divide(4, 2);
 	c.cd(1);
 	// gPad->SetRightMargin(0.4);
 	gStyle->SetPadRightMargin(0.25);
@@ -698,18 +743,45 @@ void FnuQualityCheck::PrintSummaryPlot()
 	c.cd(5);
 	c.SetGridx(1);
 	gPad->SetRightMargin(0.0);
-	gPad->SetTopMargin(0.15);
+	gPad->SetTopMargin(0.13);
 	TMultiGraph *mg2 = new TMultiGraph("mg2", "sigma:plate (" + title + ");plate;sigma (#mum)");
 	sigmaXGraph->SetMarkerSize(0.5);
 	sigmaYGraph->SetMarkerSize(0.5);
 	mg2->Add(sigmaXGraph);
 	mg2->Add(sigmaYGraph);
 	mg2->Draw("ap");
-	TLegend *leg2 = new TLegend(0.2, 0.85, 1.0, 0.93);
+	TLegend *leg2 = new TLegend(0.2, 0.87, 1.0, 0.93);
 	leg2->AddEntry(sigmaXGraph, "resolutionX", "p");
 	leg2->AddEntry(sigmaYGraph, "resolutionY", "p");
 	leg2->SetNColumns(2);
 	leg2->Draw();
+
+	c.cd(6);
+	gStyle->SetPadRightMargin(0.0);
+	gStyle->SetPadTopMargin(0.13);
+	gStyle->SetOptStat("e");
+	gStyle->SetStatH(0.05);
+	gStyle->SetStatW(0.2);
+	gStyle->SetStatX(1);
+	gStyle->SetStatY(0.87);
+	nplHist->Draw();
+	nsegHist->Draw("sames");
+	gPad->UseCurrentStyle();
+	gPad->Update();
+	nsegHist->SetLineColor(kRed);
+	// TPaveStats *nplStat = (TPaveStats*)nplHist->FindObject("stats");
+	// nplStat->SetTextColor(kBlue);
+	// TPaveStats *nsegStat = (TPaveStats *)nsegHist->FindObject("stats");
+	// nsegStat->SetTextColor(kRed);
+	// nsegStat->SetX1NDC(0.6);
+	// nsegStat->SetX2NDC(0.8);
+	TLegend *legNsegNpl = new TLegend(0.2, 0.87, 1.0, 0.93);
+	legNsegNpl->AddEntry(nsegHist, "nseg", "l");
+	legNsegNpl->AddEntry(nplHist, "npl", "l");
+	legNsegNpl->SetNColumns(2);
+	legNsegNpl->Draw();
+	gPad->SetLogy();
+	
 
 	c.Print("summary_plot_test.pdf");
 }
