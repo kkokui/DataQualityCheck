@@ -23,8 +23,8 @@ int main(int argc, char *argv[])
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
 
-	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=5");
-	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
+	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=5");
+	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
 
 	TObjArray *tracks = pvr->GetTracks();
 	int ntrk = tracks->GetEntriesFast();
@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	// qc.WritePosResPar(outputDir + "pos_res/sigma_par_" + title + ".root");
 	// qc.WriteDeltaXY(outputDir + "deltaXY/tree_" + title + ".root");
 	qc.CalcEfficiency();
-	// qc.PlotEfficiency("efficiency_output/hist_efficiency_" + title + ".pdf");
+	// qc.PrintEfficiency("efficiency_output/hist_efficiency_" + title + ".pdf");
 	// qc.WriteEfficiency("efficiency_output/efficiency_" + title + ".root");
 	// qc.WriteEfficiencyTree(Form("efficiency_output/effinfo_%s.root", title.Data()));
 	qc.MakePositionHist();
@@ -55,11 +55,14 @@ int main(int argc, char *argv[])
 	// qc.PrintAngleHist("angle_distribution_"+title+".pdf");
 	// qc.WriteAngleHist("angle_distribution_"+title+".root");
 	qc.MakeNsegHist();
-	qc.PrintNsegHist("nseg_"+title+".pdf");
-	qc.WriteNsegHist("nseg_"+title+".root");
+	// qc.PrintNsegHist("nseg_"+title+".pdf");
+	// qc.WriteNsegHist("nseg_"+title+".root");
 	qc.MakeNplHist();
-	qc.PrintNplHist("npl_" + title + ".pdf");
-	qc.WriteNplHist("npl_" + title + ".root");
+	// qc.PrintNplHist("npl_" + title + ".pdf");
+	// qc.WriteNplHist("npl_" + title + ".root");
+	qc.MakeFirstLastPlateHist();
+	// qc.PrintFirstLastPlateHist("first_last_plate_" + title + ".pdf");
+	// qc.WriteFirstLastPlateHist("first_last_plate_" + title + ".root");
 	qc.PrintSummaryPlot();
 	return 0;
 }

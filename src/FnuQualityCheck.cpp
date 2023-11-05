@@ -393,7 +393,7 @@ void FnuQualityCheck::CalcEfficiency()
 	int nbins_TXTY = bins_vec_TXTY.size() - 1;
 
 	pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta;efficiency", title.Data()), nbins_angle, bins_angle);
-	pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate;efficiency", title.Data()), plMax - plMin+1, plMin-0.5, plMax+0.5);
+	pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate;efficiency", title.Data()), plMax - plMin + 1, plMin - 0.5, plMax + 0.5);
 	pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
 	pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
 
@@ -645,8 +645,8 @@ void FnuQualityCheck::WriteAngleHist(TString filename)
 
 void FnuQualityCheck::MakeNsegHist()
 {
-	nsegHist = new TH1I("nsegHist","nseg ("+title+");nseg;Ntracks",nPID,0.5,nPID+0.5);
-	for(int itrk = 0;itrk<ntrk;itrk++)
+	nsegHist = new TH1I("nsegHist", "nseg (" + title + ");nseg;Ntracks", nPID, 0.5, nPID + 0.5);
+	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
 		int nseg = pvr->GetTrack(itrk)->N();
 		nsegHist->Fill(nseg);
@@ -689,25 +689,57 @@ void FnuQualityCheck::WriteNplHist(TString filename)
 }
 void FnuQualityCheck::MakeFirstLastPlateHist()
 {
-	firstPlateHist = new TH1I("firstPlateHist", "first plate (" + title + ");plate;Ntracks", plMax - plMin + 1,plMin-0.5,plMax+0.5);
+	firstPlateHist = new TH1I("firstPlateHist", "first plate (" + title + ");plate;Ntracks", plMax - plMin + 1, plMin - 0.5, plMax + 0.5);
+	lastPlateHist = new TH1I("lastPlateHist", "last plate (" + title + ");plate;Ntracks", plMax - plMin + 1, plMin - 0.5, plMax + 0.5);
+	for (int itrk = 0; itrk < ntrk; itrk++)
+	{
+		EdbTrackP *t = pvr->GetTrack(itrk);
+		firstPlateHist->Fill(t->GetSegmentFirst()->Plate());
+		lastPlateHist->Fill(t->GetSegmentLast()->Plate());
+	}
 }
 void FnuQualityCheck::PrintFirstLastPlateHist(TString filename)
 {
-
+	TString originalHistTitle = firstPlateHist->GetTitle();
+	firstPlateHist->SetTitle("start and end plate");
+	gStyle->SetPadTopMargin(0.13);
+	TCanvas c;
+	gStyle->SetOptStat("e");
+	gStyle->SetStatY(0.87);
+	firstPlateHist->Draw();
+	lastPlateHist->SetLineColor(kRed);
+	lastPlateHist->Draw("same");
+	TLegend *legFirstLast = new TLegend(0.2, 0.87, 0.9, 0.93);
+	legFirstLast->AddEntry(firstPlateHist, "first plate", "l");
+	legFirstLast->AddEntry(lastPlateHist, "last plate", "l");
+	legFirstLast->SetNColumns(2);
+	legFirstLast->Draw();
+	c.Print(filename);
+	firstPlateHist->SetTitle(originalHistTitle);
+	gROOT->SetStyle("Modern");
+	gStyle->SetOptStat();
+	gStyle->SetStatY(0.935);
+	firstPlateHist->UseCurrentStyle();
+	lastPlateHist->UseCurrentStyle();
 }
 void FnuQualityCheck::WriteFirstLastPlateHist(TString filename)
 {
-
+	TFile fout(filename, "recreate");
+	firstPlateHist->Write();
+	lastPlateHist->Write();
+	fout.Close();
 }
 void FnuQualityCheck::PrintSummaryPlot()
 {
-	gStyle->SetPadLeftMargin(0.1);
+	gStyle->SetPadLeftMargin(0.14);
 	gStyle->SetPadBottomMargin(0.12);
 	gStyle->SetPadTopMargin(0.07);
-	gStyle->SetTitleOffset(0.8, "Y");
+	gStyle->SetTitleOffset(1.1, "Y");
 	gStyle->SetTitleOffset(1.0, "Z");
 	gStyle->SetTitleSize(0.06, "XYZ");
 	gStyle->SetLabelSize(0.05, "XYZ");
+	gStyle->SetNdivisions(505,"xyz");
+	TGaxis::SetMaxDigits(4);
 	TCanvas c("c", "summary plot", 2500, 1000);
 	c.Divide(4, 2);
 	c.cd(1);
@@ -723,8 +755,8 @@ void FnuQualityCheck::PrintSummaryPlot()
 	gPad->Update();
 	// gStyle->SetPadLeftMargin(0.15);
 	// gStyle->SetTitleOffset(1.5, "Y");
-	((TGaxis *)positionHist->GetXaxis())->SetMaxDigits(3);
-	((TGaxis *)positionHist->GetYaxis())->SetMaxDigits(3);
+	// ((TGaxis *)positionHist->GetXaxis())->SetMaxDigits(2);
+	// ((TGaxis *)positionHist->GetYaxis())->SetMaxDigits(2);
 	TPaletteAxis *palette = (TPaletteAxis *)positionHist->GetListOfFunctions()->FindObject("palette");
 	palette->SetX1NDC(0.845);
 	palette->SetX2NDC(0.88);
@@ -743,8 +775,11 @@ void FnuQualityCheck::PrintSummaryPlot()
 	palette->SetY2NDC(0.68);
 	gPad->UseCurrentStyle();
 
+	// efficiency for each angle
 	c.cd(3);
 	gPad->SetRightMargin(0.0);
+	// gPad->SetLeftMargin(0.14);
+	// gStyle->SetTitleYOffset(1.1);
 	pEff_angle->Draw();
 
 	c.cd(4);
@@ -761,7 +796,7 @@ void FnuQualityCheck::PrintSummaryPlot()
 	mg2->Add(sigmaXGraph);
 	mg2->Add(sigmaYGraph);
 	mg2->Draw("ap");
-	TLegend *leg2 = new TLegend(0.2, 0.87, 1.0, 0.93);
+	TLegend *leg2 = new TLegend(0.3, 0.87, 1.0, 0.93);
 	leg2->AddEntry(sigmaXGraph, "resolutionX", "p");
 	leg2->AddEntry(sigmaYGraph, "resolutionY", "p");
 	leg2->SetNColumns(2);
@@ -786,13 +821,36 @@ void FnuQualityCheck::PrintSummaryPlot()
 	// nsegStat->SetTextColor(kRed);
 	// nsegStat->SetX1NDC(0.6);
 	// nsegStat->SetX2NDC(0.8);
-	TLegend *legNsegNpl = new TLegend(0.2, 0.87, 1.0, 0.93);
+	TLegend *legNsegNpl = new TLegend(0.3, 0.87, 1.0, 0.93);
 	legNsegNpl->AddEntry(nsegHist, "nseg", "l");
 	legNsegNpl->AddEntry(nplHist, "npl", "l");
 	legNsegNpl->SetNColumns(2);
 	legNsegNpl->Draw();
 	gPad->SetLogy();
-	
+
+	c.cd(7);
+	TString originalHistTitle = firstPlateHist->GetTitle();
+	firstPlateHist->SetTitle("start and end plate");
+	gPad->SetTopMargin(0.13);
+	gPad->SetRightMargin(0);
+	gStyle->SetOptStat("e");
+	gStyle->SetStatY(0.87);
+	firstPlateHist->Draw();
+	lastPlateHist->Draw("same");
+	TLegend *legFirstLast = new TLegend(0.3, 0.87, 1.0, 0.93);
+	legFirstLast->AddEntry(firstPlateHist, "first plate", "l");
+	legFirstLast->AddEntry(lastPlateHist, "last plate", "l");
+	legFirstLast->SetNColumns(2);
+	legFirstLast->Draw();
+	gPad->UseCurrentStyle();
+	lastPlateHist->SetLineColor(kRed);
 
 	c.Print("summary_plot_test.pdf");
+
+	firstPlateHist->SetTitle(originalHistTitle);
+	gROOT->SetStyle("Modern");
+	gStyle->SetOptStat();
+	gStyle->SetStatY(0.935);
+	firstPlateHist->UseCurrentStyle();
+	lastPlateHist->UseCurrentStyle();
 }
