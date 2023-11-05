@@ -392,10 +392,10 @@ void FnuQualityCheck::CalcEfficiency()
 	std::copy(bins_vec_TXTY.begin(), bins_vec_TXTY.end(), bins_TXTY);
 	int nbins_TXTY = bins_vec_TXTY.size() - 1;
 
-	pEff_angle = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta;efficiency", title.Data()), nbins_angle, bins_angle);
-	pEff_plate = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate;efficiency", title.Data()), plMax - plMin + 1, plMin - 0.5, plMax + 0.5);
-	pEff_TX = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
-	pEff_TY = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
+	eachAngleEfficiency = new TEfficiency("Eff_angle", Form("Efficiency for each angle (%s);tan#theta;efficiency", title.Data()), nbins_angle, bins_angle);
+	eachPlateEfficiency = new TEfficiency("Eff_plate", Form("Efficiency for each plate (%s);plate;efficiency", title.Data()), plMax - plMin + 1, plMin - 0.5, plMax + 0.5);
+	eachTXEfficiency = new TEfficiency("Eff_TX", Form("Efficiency for each TX (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
+	eachTYEfficiency = new TEfficiency("Eff_TY", Form("Efficiency for each TY (%s);tan#theta;efficiency", title.Data()), nbins_TXTY, bins_TXTY);
 
 	effInfo = new TTree("effInfo", "efficiency infomation");
 	effInfo->Branch("trackID", &trackID);
@@ -455,10 +455,10 @@ void FnuQualityCheck::CalcEfficiency()
 				TX = (x2 - x1) / (z2 - z1);
 				TY = (y2 - y1) / (z2 - z1);
 				angle = sqrt(TX * TX + TY * TY);
-				pEff_angle->Fill(hitsOnThePlate, angle);
-				pEff_plate->Fill(hitsOnThePlate, iplate);
-				pEff_TX->Fill(hitsOnThePlate, TX);
-				pEff_TY->Fill(hitsOnThePlate, TY);
+				eachAngleEfficiency->Fill(hitsOnThePlate, angle);
+				eachPlateEfficiency->Fill(hitsOnThePlate, iplate);
+				eachTXEfficiency->Fill(hitsOnThePlate, TX);
+				eachTYEfficiency->Fill(hitsOnThePlate, TY);
 				trackID = t->ID();
 				x = (x1 + x2) / 2;
 				y = (y1 + y2) / 2;
@@ -474,28 +474,28 @@ void FnuQualityCheck::PrintEfficiency(TString filename)
 	TCanvas *c = new TCanvas();
 	c->Print(filename + "[");
 	c->SetLogy(1);
-	pEff_angle->GetCopyTotalHisto()->Draw();
+	eachAngleEfficiency->GetCopyTotalHisto()->Draw();
 	c->Print(filename);
 	c->SetLogy(0);
-	pEff_angle->Draw();
+	eachAngleEfficiency->Draw();
 	c->Print(filename);
-	pEff_plate->GetCopyTotalHisto()->Draw();
+	eachPlateEfficiency->GetCopyTotalHisto()->Draw();
 	c->Print(filename);
-	pEff_plate->Draw();
+	eachPlateEfficiency->Draw();
 	c->Print(filename);
 
 	c->SetLogy(1);
-	pEff_TX->GetCopyTotalHisto()->Draw();
+	eachTXEfficiency->GetCopyTotalHisto()->Draw();
 	c->Print(filename);
 	c->SetLogy(0);
-	pEff_TX->Draw();
+	eachTXEfficiency->Draw();
 	c->Print(filename);
 
 	c->SetLogy(1);
-	pEff_TY->GetCopyTotalHisto()->Draw();
+	eachTYEfficiency->GetCopyTotalHisto()->Draw();
 	c->Print(filename);
 	c->SetLogy(0);
-	pEff_TY->Draw();
+	eachTYEfficiency->Draw();
 	c->Print(filename);
 
 	c->Print(filename + "]");
@@ -511,10 +511,10 @@ void FnuQualityCheck::WriteEfficiencyTree(TString filename)
 void FnuQualityCheck::WriteEfficiency(TString filename)
 {
 	TFile fout(filename, "recreate");
-	pEff_angle->Write();
-	pEff_plate->Write();
-	pEff_TX->Write();
-	pEff_TY->Write();
+	eachAngleEfficiency->Write();
+	eachPlateEfficiency->Write();
+	eachTXEfficiency->Write();
+	eachTYEfficiency->Write();
 	fout.Close();
 }
 
@@ -527,7 +527,7 @@ void FnuQualityCheck::MakePositionHist()
 	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
 		EdbTrackP *t = pvr->GetTrack(itrk);
-		if (5 < t->N())
+		if (t->N() < 5)
 			continue;
 		double X = t->X();
 		double Y = t->Y();
@@ -581,7 +581,7 @@ void FnuQualityCheck::MakeAngleHist()
 		EdbTrackP *t = pvr->GetTrack(itrk);
 		int nseg = t->N();
 		// cut is nseg>=5
-		if (5 < nseg)
+		if (nseg < 5)
 			continue;
 		// loop over the segments
 		double X[nseg];
@@ -738,10 +738,12 @@ void FnuQualityCheck::PrintSummaryPlot()
 	gStyle->SetTitleOffset(1.0, "Z");
 	gStyle->SetTitleSize(0.06, "XYZ");
 	gStyle->SetLabelSize(0.05, "XYZ");
-	gStyle->SetNdivisions(505,"xyz");
+	gStyle->SetNdivisions(505, "xyz");
 	TGaxis::SetMaxDigits(4);
-	TCanvas c("c", "summary plot", 2500, 1000);
-	c.Divide(4, 2);
+	TCanvas c("c", "summary plot", 1600, 900);
+	c.Divide(4, 3);
+
+	// position distribution
 	c.cd(1);
 	// gPad->SetRightMargin(0.4);
 	gStyle->SetPadRightMargin(0.25);
@@ -750,6 +752,8 @@ void FnuQualityCheck::PrintSummaryPlot()
 	gStyle->SetStatW(0.25);
 	gStyle->SetStatX(1);
 	gStyle->SetStatY(1);
+	TString positionHistOriginalTitle = positionHist->GetTitle();
+	positionHist->SetTitle("position distribution");
 	positionHist->Draw("colz");
 	gPad->UseCurrentStyle();
 	gPad->Update();
@@ -764,8 +768,11 @@ void FnuQualityCheck::PrintSummaryPlot()
 	// gPad->RedrawAxis();
 	gPad->UseCurrentStyle();
 
+	// angle distribution
 	c.cd(2);
 	gStyle->SetPadRightMargin(0.25);
+	TString angleHistNarrowOriginalTitle = angleHistNarrow->GetTitle();
+	angleHistNarrow->SetTitle("angle distribution narrow");
 	angleHistNarrow->Draw("colz");
 	gPad->UseCurrentStyle();
 	gPad->Update();
@@ -777,20 +784,24 @@ void FnuQualityCheck::PrintSummaryPlot()
 
 	// efficiency for each angle
 	c.cd(3);
+	TString eachAngleEfficiencyOriginalTitle = eachAngleEfficiency->GetTitle();
+	eachAngleEfficiency->SetTitle("efficiency for each angle");
 	gPad->SetRightMargin(0.0);
-	// gPad->SetLeftMargin(0.14);
-	// gStyle->SetTitleYOffset(1.1);
-	pEff_angle->Draw();
+	eachAngleEfficiency->Draw();
 
+	// efficiency for each plate
 	c.cd(4);
+	TString eachPlateEfficiencyOriginalTitle = eachPlateEfficiency->GetTitle();
+	eachPlateEfficiency->SetTitle("efficiency for each plate");
 	gPad->SetRightMargin(0.0);
-	pEff_plate->Draw();
+	eachPlateEfficiency->Draw();
 
+	// position resolution in x and y for each plate
 	c.cd(5);
 	c.SetGridx(1);
 	gPad->SetRightMargin(0.0);
 	gPad->SetTopMargin(0.13);
-	TMultiGraph *mg2 = new TMultiGraph("mg2", "sigma:plate (" + title + ");plate;sigma (#mum)");
+	TMultiGraph *mg2 = new TMultiGraph("mg2", "position resolution for each plate");
 	sigmaXGraph->SetMarkerSize(0.5);
 	sigmaYGraph->SetMarkerSize(0.5);
 	mg2->Add(sigmaXGraph);
@@ -802,6 +813,7 @@ void FnuQualityCheck::PrintSummaryPlot()
 	leg2->SetNColumns(2);
 	leg2->Draw();
 
+	// npl and nseg
 	c.cd(6);
 	gStyle->SetPadRightMargin(0.0);
 	gStyle->SetPadTopMargin(0.13);
@@ -810,17 +822,13 @@ void FnuQualityCheck::PrintSummaryPlot()
 	gStyle->SetStatW(0.2);
 	gStyle->SetStatX(1);
 	gStyle->SetStatY(0.87);
+	TString nplHistOriginalTitle = nplHist->GetTitle();
+	nplHist->SetTitle("nseg and npl");
 	nplHist->Draw();
 	nsegHist->Draw("sames");
 	gPad->UseCurrentStyle();
 	gPad->Update();
 	nsegHist->SetLineColor(kRed);
-	// TPaveStats *nplStat = (TPaveStats*)nplHist->FindObject("stats");
-	// nplStat->SetTextColor(kBlue);
-	// TPaveStats *nsegStat = (TPaveStats *)nsegHist->FindObject("stats");
-	// nsegStat->SetTextColor(kRed);
-	// nsegStat->SetX1NDC(0.6);
-	// nsegStat->SetX2NDC(0.8);
 	TLegend *legNsegNpl = new TLegend(0.3, 0.87, 1.0, 0.93);
 	legNsegNpl->AddEntry(nsegHist, "nseg", "l");
 	legNsegNpl->AddEntry(nplHist, "npl", "l");
@@ -829,7 +837,7 @@ void FnuQualityCheck::PrintSummaryPlot()
 	gPad->SetLogy();
 
 	c.cd(7);
-	TString originalHistTitle = firstPlateHist->GetTitle();
+	TString firstPlateHistOriginalTitle = firstPlateHist->GetTitle();
 	firstPlateHist->SetTitle("start and end plate");
 	gPad->SetTopMargin(0.13);
 	gPad->SetRightMargin(0);
@@ -847,10 +855,27 @@ void FnuQualityCheck::PrintSummaryPlot()
 
 	c.Print("summary_plot_test.pdf");
 
-	firstPlateHist->SetTitle(originalHistTitle);
+	// set original title
+	positionHist->SetTitle(positionHistOriginalTitle);
+	angleHistNarrow->SetTitle(angleHistNarrowOriginalTitle);
+	eachAngleEfficiency->SetTitle(eachAngleEfficiencyOriginalTitle);
+	eachPlateEfficiency->SetTitle(eachPlateEfficiencyOriginalTitle);
+	nplHist->SetTitle(nplHistOriginalTitle);
+	firstPlateHist->SetTitle(firstPlateHistOriginalTitle);
+
+	// set default style
 	gROOT->SetStyle("Modern");
 	gStyle->SetOptStat();
 	gStyle->SetStatY(0.935);
+	positionHist->UseCurrentStyle();
+	angleHistNarrow->UseCurrentStyle();
+	eachPlateEfficiency->UseCurrentStyle();
+	eachAngleEfficiency->UseCurrentStyle();
+	sigmaXGraph->UseCurrentStyle();
+	sigmaYGraph->UseCurrentStyle();
+	nsegHist->UseCurrentStyle();
+	nplHist->UseCurrentStyle();
 	firstPlateHist->UseCurrentStyle();
 	lastPlateHist->UseCurrentStyle();
+
 }

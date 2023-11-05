@@ -20,7 +20,7 @@ private:
     TH1D *sigmaXHist, *sigmaYHist;
     std::vector<double> bins_vec_angle;
     std::vector<double> bins_vec_TXTY;
-    TEfficiency *pEff_angle, *pEff_plate, *pEff_TX, *pEff_TY;
+    TEfficiency *eachAngleEfficiency, *eachPlateEfficiency, *eachTXEfficiency, *eachTYEfficiency;
     TH2D *positionHist;
     TH2D *angleHistWide;
     TH2D *angleHistNarrow;
