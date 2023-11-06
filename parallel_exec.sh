@@ -14,8 +14,7 @@ measure_momentum() {
 }
 export -f measure_momentum
 # parallel -j 5 -u measure_momentum ::: {0..4}
-parallel -j 5 -u measure_momentum ::: 2000 ::: 0.{7..9} ::: {0..4}
-# parallel -j 5 -u measure_momentum ::: 5000 1000 500 ::: 1.0 0.{6..9} ::: {0..4}
+parallel -j 5 -u measure_momentum ::: 5000 1000 500 ::: 1.0 0.{6..9} ::: {0..4}
 
 calc_pos_res() {
     data_dir="/data/Users/kokui/FASERnu/F222/zone4/temp/TFD/vert32063_pl053_167_new/reco32_065000_050000/v15"
