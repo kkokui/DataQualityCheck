@@ -12,12 +12,18 @@ void CalcAllTrackMomentum(TObjArray *tracks,TString title)
     for (int itrk = 0; itrk < ntrk; itrk++)
     {
         EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
+        // tracks with angle diff max larger than 1 mrad is ignored.
+        // FnuMomCoord::CalcTrackAngleDiffMax() returns mrad.
+        // if(mom.CalcTrackAngleDiffMax(t)>=1)
+        // {
+        //     continue;
+        // }
         double p = mom.CalcMomentum(t);
         // mom.DrawMomGraphCoord(t,c,"test");
         hmom.Fill(p);
         if(0==itrk%1000)
         {
-            printf("%3d%% done\r",itrk*100/ntrk);
+            printf("%3d%%\r",itrk*100/ntrk);
             fflush(stdout);
         }
     }
