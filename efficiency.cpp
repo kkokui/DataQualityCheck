@@ -24,8 +24,8 @@ int main(int argc , char *argv[]){
 	int plMin = pvr->GetPattern(0)->Plate();
 	int plMax = pvr->GetPattern(nPID-1)->Plate();
 	
-	TEfficiency *pEff_angle =0;
-	TEfficiency *pEff_plate =0;
+	TEfficiency *eachAngleEfficiency =0;
+	TEfficiency *eachPlateEfficiency =0;
 	
 	int ntrk = pvr->Ntracks();
 	double bins[] = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
@@ -119,15 +119,15 @@ int main(int argc , char *argv[]){
 	h_angle_total->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf",title.Data()));
 	c->SetLogy(0);
-	pEff_angle = new TEfficiency(*h_angle_passed, *h_angle_total);
-	pEff_angle->SetTitle(Form("Efficiency for each angle (%s);tan#theta;efficiency",title.Data()));
-	pEff_angle->Draw();
+	eachAngleEfficiency = new TEfficiency(*h_angle_passed, *h_angle_total);
+	eachAngleEfficiency->SetTitle(Form("Efficiency for each angle (%s);tan#theta;efficiency",title.Data()));
+	eachAngleEfficiency->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf",title.Data()));
 	h_plate_total->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf",title.Data()));
-	pEff_plate = new TEfficiency(*h_plate_passed, *h_plate_total);
-	pEff_plate->SetTitle(Form("Efficiency for each plate (%s);plate;efficiency", title.Data()));
-	pEff_plate->Draw();
+	eachPlateEfficiency = new TEfficiency(*h_plate_passed, *h_plate_total);
+	eachPlateEfficiency->SetTitle(Form("Efficiency for each plate (%s);plate;efficiency", title.Data()));
+	eachPlateEfficiency->Draw();
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf",title.Data()));
 
 	c->SetLogy(1);
@@ -150,8 +150,8 @@ int main(int argc , char *argv[]){
 
 	c->Print(Form("efficiency_output/hist_efficiency_%s.pdf]", title.Data()));
 	TFile fout(Form("efficiency_output/efficiency_%s.root", title.Data()), "recreate");
-	pEff_angle->Write();
-	pEff_plate->Write();
+	eachAngleEfficiency->Write();
+	eachPlateEfficiency->Write();
 	grEff_TX->Write();
 	grEff_TY->Write();
 	fout.Close();
@@ -164,7 +164,7 @@ int main(int argc , char *argv[]){
 	fprintf(ftxt,"\n");
 	for(int i=1;i<=nbins;i++)
 	{
-		fprintf(ftxt,"%f ",pEff_angle->GetEfficiency(i));
+		fprintf(ftxt,"%f ",eachAngleEfficiency->GetEfficiency(i));
 	}
 	fprintf(ftxt,"\n");
 	fclose(ftxt);
