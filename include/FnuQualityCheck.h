@@ -9,11 +9,13 @@ private:
     TTree *deltaXY;
     TTree *posResPar;
     TTree *htree;
+    TTree *meanDeltaXY;
     TTree *effInfo;
     TString title;
     int ntrk;
     int nPID;
     double XYrange;
+    double angleCut;
     int plMin;
     int plMax;
     TGraph *meanXGraph, *meanYGraph, *sigmaXGraph, *sigmaYGraph;
@@ -39,6 +41,9 @@ private:
     TH1D *hdeltaY;
     int trackID, nseg, W, hitsOnThePlate;
     double x, y, angle, TX, TY;
+    TH2D *deltaX2DHist;
+    TH2D *deltaY2DHist;
+    TH2D *entries2DHist;
 
 public:
     FnuQualityCheck(EdbPVRec *pvr, TString title);
@@ -53,6 +58,9 @@ public:
     void WritePosResPar(TString filename);
     void WriteDeltaXY(TString filename);
     void PrintDeltaXYHist(TString filename);
+    void CalcMeanDeltaXY(double Xcenter, double Ycenter, double cellSize);
+    int PrintMeanDeltaXYArrowPlot(TString filename);
+    void WriteMeanDeltaXY(TString filename);
     // methods for efficiency
     void CalcEfficiency();
     void SetBinsAngle(int nbins, double bins[]);
@@ -80,6 +88,8 @@ public:
     void MakeFirstLastPlateHist();
     void PrintFirstLastPlateHist(TString filename);
     void WriteFirstLastPlateHist(TString filename);
+    // methods for second difference
+    void CalcSecondDifference(int cellLength);
     // methods for summary plot
     void PrintSummaryPlot();
 };

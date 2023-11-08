@@ -36,33 +36,36 @@ int main(int argc, char *argv[])
 	}
 	FnuQualityCheck qc(pvr, title);
 	qc.CalcDeltaXY(Xcenter, Ycenter, bin_width);
-	qc.FitDeltaXY();
-	qc.MakePosResGraphHist();
+	qc.CalcMeanDeltaXY(Xcenter, Ycenter, 500);
+	qc.PrintMeanDeltaXYArrowPlot("deltaXY_XYdis/arrow_deltaXY_" + title + ".pdf");
+	qc.WriteMeanDeltaXY("deltaXY_XYdis/mean_deltaXY_" + title + ".root"); // Writing should be done after all methods that use a related tree.
+	// qc.FitDeltaXY();
+	// qc.MakePosResGraphHist();
 	// TString outputDir = "/data/Users/kokui/FASERnu/F222/zone4/temp/TFD/vert32063_pl053_167_new/reco32_065000_050000/v15/";
+	// qc.WriteDeltaXY(outputDir + "deltaXY/tree_" + title + ".root");
 	// qc.PrintPosResGraphHist(outputDir + "pos_res/sigma_par_" + title + ".pdf");
 	// qc.WritePosResGraphHist(outputDir + "pos_res/graph_hist_" + title + ".root");
 	// qc.PrintDeltaXYHist(outputDir + "pos_res/deltaxy_hist" + title + ".pdf");
 	// qc.WritePosResPar(outputDir + "pos_res/sigma_par_" + title + ".root");
-	// qc.WriteDeltaXY(outputDir + "deltaXY/tree_" + title + ".root");
-	qc.CalcEfficiency();
+	// qc.CalcEfficiency();
 	// qc.PrintEfficiency("efficiency_output/hist_efficiency_" + title + ".pdf");
 	// qc.WriteEfficiency("efficiency_output/efficiency_" + title + ".root");
 	// qc.WriteEfficiencyTree(Form("efficiency_output/effinfo_%s.root", title.Data()));
-	qc.MakePositionHist();
+	// qc.MakePositionHist();
 	// qc.PrintPositionHist("position_distribution_"+title+".pdf");
 	// qc.WritePositionHist("position_distribution_"+title+".root");
-	qc.MakeAngleHist();
+	// qc.MakeAngleHist();
 	// qc.PrintAngleHist("angle_distribution_"+title+".pdf");
 	// qc.WriteAngleHist("angle_distribution_"+title+".root");
-	qc.MakeNsegHist();
+	// qc.MakeNsegHist();
 	// qc.PrintNsegHist("nseg_"+title+".pdf");
 	// qc.WriteNsegHist("nseg_"+title+".root");
-	qc.MakeNplHist();
+	// qc.MakeNplHist();
 	// qc.PrintNplHist("npl_" + title + ".pdf");
 	// qc.WriteNplHist("npl_" + title + ".root");
-	qc.MakeFirstLastPlateHist();
+	// qc.MakeFirstLastPlateHist();
 	// qc.PrintFirstLastPlateHist("first_last_plate_" + title + ".pdf");
 	// qc.WriteFirstLastPlateHist("first_last_plate_" + title + ".root");
-	qc.PrintSummaryPlot();
+	// qc.PrintSummaryPlot();
 	return 0;
 }

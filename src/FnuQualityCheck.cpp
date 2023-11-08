@@ -20,6 +20,8 @@
 #include <TGraphAsymmErrors.h>
 #include <TPaletteAxis.h>
 #include <TPaveStats.h>
+#include <TArrow.h>
+#include <TLatex.h>
 
 FnuQualityCheck::FnuQualityCheck(EdbPVRec *pvr, TString title)
 	: pvr(pvr),
@@ -29,7 +31,9 @@ FnuQualityCheck::FnuQualityCheck(EdbPVRec *pvr, TString title)
 	  plMax(pvr->GetPattern(nPID - 1)->Plate()),
 	  ntrk(pvr->Ntracks()),
 	  deltaTXV(), deltaXV(), deltaYV(), deltaTYV(), xV(), yV(), slopeXV(), slopeYV(),
-	  crossTheLineV(), tridV(), nsegV()
+	  crossTheLineV(), tridV(), nsegV(),
+	  angleCut(0.01),
+	  XYrange(8500)
 {
 	double bins_arr_angle[] = {0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
 	SetBinsAngle(26, bins_arr_angle);
@@ -169,7 +173,6 @@ void FnuQualityCheck::FitDeltaXY()
 {
 	// Create histograms of delta x and y and fit them.
 	// Before using this method, do CalcDeltaXY() to make deltaXY data.
-	double angcut = 0.01;
 	posResPar = new TTree("posResPar", "posResPar");
 
 	posResPar->Branch("sigmaX", &sigmaX);
@@ -209,7 +212,7 @@ void FnuQualityCheck::FitDeltaXY()
 		const auto slopeYMean = std::accumulate(slopeYV->begin(), slopeYV->end(), 0.0) / slopeYV->size();
 		for (int i = 0; i < deltaXV->size(); i++)
 		{
-			if (fabs(deltaYV->at(i)) <= 2 && fabs(deltaXV->at(i)) <= 2 && fabs(slopeXV->at(i) - slopeXMean) < angcut && fabs(slopeYV->at(i) - slopeYMean) < angcut)
+			if (fabs(deltaYV->at(i)) <= 2 && fabs(deltaXV->at(i)) <= 2 && fabs(slopeXV->at(i) - slopeXMean) < angleCut && fabs(slopeYV->at(i) - slopeYMean) < angleCut)
 			{
 				hdeltaX->Fill(deltaXV->at(i));
 				hdeltaY->Fill(deltaYV->at(i));
@@ -382,7 +385,117 @@ void FnuQualityCheck::WriteDeltaXY(TString filename)
 	deltaXY->Write();
 	fout.Close();
 }
+void FnuQualityCheck::CalcMeanDeltaXY(double Xcenter, double Ycenter, double cellSize)
+{
+	// calculate the mean of the deltaX or deltaY in each area (cellSize*cellSize) for drawing the arrow of positional displacement
+	// Xcenter and Ycenter are the center positions in the volume
+	int nbinsx, nbinsy;
+	nbinsx = nbinsy = ceil(XYrange * 2 / cellSize);
+	deltaX2DHist = new TH2D("deltaX2DHist", "deltaX mean (" + title + ");x (#mum);y (#mum);deltaX mean (#mum)", nbinsx, Xcenter - XYrange, Xcenter - XYrange + cellSize * nbinsx, nbinsy, Ycenter - XYrange, Ycenter - XYrange + cellSize * nbinsy);
+	deltaY2DHist = new TH2D("deltaY2DHist", "deltaY mean (" + title + ");x (#mum);y (#mum);deltaY mean (#mum)", nbinsx, Xcenter - XYrange, Xcenter - XYrange + cellSize * nbinsx, nbinsy, Ycenter - XYrange, Ycenter - XYrange + cellSize * nbinsy);
+	entries2DHist = new TH2D("entries2DHist", "entries (" + title + ");x (#mum);y (#mum);entries", nbinsx, Xcenter - XYrange, Xcenter - XYrange + cellSize * nbinsx, nbinsy, Ycenter - XYrange, Ycenter - XYrange + cellSize * nbinsy);
+	meanDeltaXY = new TTree("meanDeltaXY", "2D histograms of mean deltaXY for each plate");
+	meanDeltaXY->Branch("deltaX2DHist", &deltaX2DHist);
+	meanDeltaXY->Branch("deltaY2DHist", &deltaY2DHist);
+	meanDeltaXY->Branch("entries2DHist", &entries2DHist);
+	meanDeltaXY->Branch("plate", &plate);
 
+	TBranch *deltaXB = deltaXY->GetBranch("deltaX");
+	TBranch *deltaYB = deltaXY->GetBranch("deltaY");
+	TBranch *xB = deltaXY->GetBranch("x");
+	TBranch *yB = deltaXY->GetBranch("y");
+	TBranch *slopeXB = deltaXY->GetBranch("slopeX");
+	TBranch *slopeYB = deltaXY->GetBranch("slopeY");
+	TBranch *plateB = deltaXY->GetBranch("plate");
+	for (int ient = 0; ient < deltaXY->GetEntriesFast(); ient++)
+	{
+		deltaXB->GetEntry(ient);
+		deltaYB->GetEntry(ient);
+		xB->GetEntry(ient);
+		yB->GetEntry(ient);
+		slopeXB->GetEntry(ient);
+		slopeYB->GetEntry(ient);
+		plateB->GetEntry(ient);
+
+		const auto slopeXMean = std::accumulate(slopeXV->begin(), slopeXV->end(), 0.0) / slopeXV->size();
+		const auto slopeYMean = std::accumulate(slopeYV->begin(), slopeYV->end(), 0.0) / slopeYV->size();
+		for (int i = 0; i < deltaXV->size(); i++)
+		{
+			if (fabs(deltaYV->at(i)) <= 2 && fabs(deltaXV->at(i)) <= 2 && fabs(slopeXV->at(i) - slopeXMean) < angleCut && fabs(slopeYV->at(i) - slopeYMean) < angleCut)
+			{
+				deltaX2DHist->Fill(xV->at(i), yV->at(i), deltaXV->at(i));
+				deltaY2DHist->Fill(xV->at(i), yV->at(i), deltaYV->at(i));
+				entries2DHist->Fill(xV->at(i), yV->at(i));
+			}
+		}
+		deltaX2DHist->Divide(entries2DHist);
+		deltaY2DHist->Divide(entries2DHist);
+		meanDeltaXY->Fill();
+
+		deltaX2DHist->Reset();
+		deltaY2DHist->Reset();
+		entries2DHist->Reset();
+	}
+}
+
+void FnuQualityCheck::WriteMeanDeltaXY(TString filename)
+{
+	TFile fout(filename, "recreate");
+	meanDeltaXY->Write();
+	fout.Close();
+}
+
+int FnuQualityCheck::PrintMeanDeltaXYArrowPlot(TString filename)
+{
+	int nent = meanDeltaXY->GetEntriesFast();
+	if (0 == nent)
+	{
+		printf("Do CalcMeanDeltaXY(double Xcenter, double Ycenter, double cellSize) before PrintMeanDeltaXYArrowPlot(TString filename)\n");
+		return nent;
+	}
+	TArrow *arrow = new TArrow();
+	double minXaxis = deltaX2DHist->GetXaxis()->GetXmin();
+	double minYaxis = deltaX2DHist->GetYaxis()->GetXmin();
+	double maxXaxis = deltaX2DHist->GetXaxis()->GetXmax();
+	double maxYaxis = deltaX2DHist->GetYaxis()->GetXmax();
+	double rangeXaxis = maxXaxis - minXaxis;
+	double rangeYaxis = maxYaxis - minYaxis;
+	int nbinsX = deltaX2DHist->GetXaxis()->GetNbins();
+	int nbinsY = deltaX2DHist->GetYaxis()->GetNbins();
+	TLatex *l = new TLatex;
+	l->SetTextAlign(33);
+	l->SetTextSize(0.03);
+	l->SetTextFont(42);
+	int scale = 2000; // Should not be hard coded...
+	TCanvas c;
+	c.Print(filename + "[");
+	for (int ient = 0; ient < nent; ient++)
+	{
+		meanDeltaXY->GetEntry(ient);
+		printf("plate = %d\n", plate);
+		TH1F *fr = gPad->DrawFrame(minXaxis, minYaxis, maxXaxis, maxYaxis, Form("deltaXY pl%d ;x(#mum);y(#mum)", plate));
+		arrow->DrawArrow(maxXaxis + rangeXaxis * 0.05, maxYaxis + rangeYaxis * 0.1, maxXaxis + rangeXaxis * 0.05 - scale * 0.5, maxYaxis + rangeYaxis * 0.1, 0.008, ">"); // equivalent to 0.5 μm.
+		l->DrawLatex(maxXaxis + rangeXaxis * 0.05, maxYaxis + rangeYaxis * 0.07, "0.5 #mum");
+		for (int ibinX = 1; ibinX <= nbinsX; ibinX++)
+		{
+			for (int ibinY = 1; ibinY <= nbinsY; ibinY++)
+			{
+				if (entries2DHist->GetBinContent(ibinX, ibinY) == 0)
+				{
+					continue;
+				}
+				double deltaXMean = deltaX2DHist->GetBinContent(ibinX, ibinY);
+				double deltaYMean = deltaY2DHist->GetBinContent(ibinX, ibinY);
+				double binCenterX = deltaX2DHist->GetXaxis()->GetBinCenter(ibinX);
+				double binCenterY = deltaX2DHist->GetYaxis()->GetBinCenter(ibinY);
+				arrow->DrawArrow(binCenterX, binCenterY, binCenterX + scale * deltaXMean, binCenterY + scale * deltaYMean, 0.008, ">");
+			}
+		}
+		c.Print(filename);
+	}
+	c.Print(filename + "]");
+	return nent;
+}
 void FnuQualityCheck::CalcEfficiency()
 {
 	double bins_angle[bins_vec_angle.size()];
@@ -729,6 +842,9 @@ void FnuQualityCheck::WriteFirstLastPlateHist(TString filename)
 	lastPlateHist->Write();
 	fout.Close();
 }
+void FnuQualityCheck::CalcSecondDifference(int cellLength)
+{
+}
 void FnuQualityCheck::PrintSummaryPlot()
 {
 	gStyle->SetPadLeftMargin(0.14);
@@ -877,5 +993,4 @@ void FnuQualityCheck::PrintSummaryPlot()
 	nplHist->UseCurrentStyle();
 	firstPlateHist->UseCurrentStyle();
 	lastPlateHist->UseCurrentStyle();
-
 }
