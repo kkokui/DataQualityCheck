@@ -4,7 +4,7 @@ void CalcAllTrackMomentum(TObjArray *tracks,TString title)
 {
     FnuMomCoord mom;
     // printf("Momentum calculation started\n");
-    mom.ReadParFile("/home/kokui/LEPP/FASERnu/Tools/FnuMomCoord/par/Data_up_to_100plates_mod1.txt");
+    mom.ReadParFile("/home/kokui/LEPP/FASERnu/Tools/FnuMomCoord/par/Data_up_to_100plates_mod1_icellmax32.txt");
     // TCanvas *c = new TCanvas();
     // c->Print("test.pdf[");
     TH1D hmom("hmom", "momentum", 100, 0, 7000);
@@ -28,7 +28,7 @@ void CalcAllTrackMomentum(TObjArray *tracks,TString title)
         }
     }
     // c->Print("test.pdf]");
-    printf("100%% done\n", ntrk, ntrk);
+    printf("100%% done\n");
     mom.WriteRootFile("momentum_output/nt_"+title);
 }
 
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 4)
     {
-        printf("usage: ./align_and_measure_momentum linked_tracks.root title cut\n");
+        printf("usage: ./measure_momentum linked_tracks.root title cut\n");
         return 1;
     }
     TString filename_linked_tracks = argv[1];
