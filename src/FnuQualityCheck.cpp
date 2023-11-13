@@ -240,6 +240,75 @@ void FnuQualityCheck::FitDeltaXY()
 	}
 }
 
+void FnuQualityCheck::FitDeltaXYAllPlatesTogether()
+{
+	// Create histograms of delta x and y and fit them.
+	// Before using this method, do CalcDeltaXY() to make deltaXY data.
+	posResPar = new TTree("posResPar", "posResPar");
+
+	posResPar->Branch("sigmaX", &sigmaX);
+	posResPar->Branch("sigmaY", &sigmaY);
+	posResPar->Branch("meanX", &meanX);
+	posResPar->Branch("meanY", &meanY);
+	posResPar->Branch("entries", &entries);
+	posResPar->Branch("plate", &plate);
+
+	hdeltaX = new TH1D("hdeltaX", "hdeltaX", 100, -2, 2);
+	hdeltaY = new TH1D("hdeltaY", "hdeltaY", 100, -2, 2);
+	htree = new TTree("htree", "htree");
+	htree->Branch("hdeltaX", &hdeltaX);
+	htree->Branch("hdeltaY", &hdeltaY);
+	htree->Branch("plate", &plate);
+
+	TF1 *f = new TF1("gaus", "gaus", -2, 2);
+	f->SetParLimits(5, 0, 0.4);
+	gStyle->SetOptFit();
+
+	// int plMin = deltaXY->GetMinimum("pl");
+	// int plMax = deltaXY->GetMaximum("pl");
+	TBranch *deltaXB = deltaXY->GetBranch("deltaX");
+	TBranch *deltaYB = deltaXY->GetBranch("deltaY");
+	TBranch *slopeXB = deltaXY->GetBranch("slopeX");
+	TBranch *slopeYB = deltaXY->GetBranch("slopeY");
+	TBranch *plateB = deltaXY->GetBranch("plate");
+	for (int ient = 0; ient < deltaXY->GetEntriesFast(); ient++)
+	{
+		deltaXB->GetEntry(ient);
+		deltaYB->GetEntry(ient);
+		slopeXB->GetEntry(ient);
+		slopeYB->GetEntry(ient);
+		plateB->GetEntry(ient);
+
+		const auto slopeXMean = std::accumulate(slopeXV->begin(), slopeXV->end(), 0.0) / slopeXV->size();
+		const auto slopeYMean = std::accumulate(slopeYV->begin(), slopeYV->end(), 0.0) / slopeYV->size();
+		for (int i = 0; i < deltaXV->size(); i++)
+		{
+			if (fabs(deltaYV->at(i)) <= 2 && fabs(deltaXV->at(i)) <= 2 && fabs(slopeXV->at(i) - slopeXMean) < angleCut && fabs(slopeYV->at(i) - slopeYMean) < angleCut)
+			{
+				hdeltaX->Fill(deltaXV->at(i));
+				hdeltaY->Fill(deltaYV->at(i));
+			}
+		}
+	}
+	hdeltaX->SetTitle(Form("pl%d %s;deltaX (#mum);", plate, title.Data()));
+	hdeltaY->SetTitle(Form("pl%d %s;deltaY (#mum);", plate, title.Data()));
+	hdeltaX->Draw();
+	f->SetParameters(1000, 0, 0.2);
+	meanX = hdeltaX->GetMean();
+	double RMSX = hdeltaX->GetRMS();
+	hdeltaX->Fit(f, "Q", "", meanX - RMSX, meanX + RMSX);
+	entries = hdeltaX->GetEntries();
+	sigmaX = f->GetParameter(2);
+	hdeltaY->Draw();
+	f->SetParameters(1000, 0, 0.2);
+	meanY = hdeltaY->GetMean();
+	double RMSY = hdeltaY->GetRMS();
+	hdeltaY->Fit(f, "Q", "", meanY - RMSY, meanY + RMSY);
+	sigmaY = f->GetParameter(2);
+	htree->Fill();
+	posResPar->Fill();
+}
+
 void FnuQualityCheck::CalcLSM(double x[], double y[], int N, double &a0, double &a1)
 {
 	// y = a0 + a1*x
@@ -472,7 +541,6 @@ int FnuQualityCheck::PrintMeanDeltaXYArrowPlot(TString filename)
 	for (int ient = 0; ient < nent; ient++)
 	{
 		meanDeltaXY->GetEntry(ient);
-		printf("plate = %d\n", plate);
 		TH1F *fr = gPad->DrawFrame(minXaxis, minYaxis, maxXaxis, maxYaxis, Form("deltaXY pl%d ;x(#mum);y(#mum)", plate));
 		arrow->DrawArrow(maxXaxis + rangeXaxis * 0.05, maxYaxis + rangeYaxis * 0.1, maxXaxis + rangeXaxis * 0.05 - scale * 0.5, maxYaxis + rangeYaxis * 0.1, 0.008, ">"); // equivalent to 0.5 μm.
 		l->DrawLatex(maxXaxis + rangeXaxis * 0.05, maxYaxis + rangeYaxis * 0.07, "0.5 #mum");
@@ -842,8 +910,143 @@ void FnuQualityCheck::WriteFirstLastPlateHist(TString filename)
 	lastPlateHist->Write();
 	fout.Close();
 }
-void FnuQualityCheck::CalcSecondDifference(int cellLength)
+TTree *FnuQualityCheck::CalcSecondDifference(int cellLength)
 {
+	// Calculate second difference for checking long range position displacement.
+
+	TTree *secondDifferenceTree = new TTree("secondDifferenceTree", "Tree of 2nd difference");
+	secondDifferenceX = new double[ntrk];
+	secondDifferenceY = new double[ntrk];
+	slopeX = new double[ntrk];
+	slopeY = new double[ntrk];
+	secondDifferenceTree->Branch("plate", &plate);
+	secondDifferenceTree->Branch("entriesParPlate", &entriesParPlate);
+	secondDifferenceTree->Branch("secondDiffX", secondDifferenceX, "secondDiffX[entriesParPlate]/D");
+	secondDifferenceTree->Branch("secondDiffY", secondDifferenceY, "secondDiffY[entriesParPlate]/D");
+	secondDifferenceTree->Branch("slopeX", slopeX, "slopeX[entriesParPlate]/D");
+	secondDifferenceTree->Branch("slopeY", slopeY, "slopeY[entriesParPlate]/D");
+	for (int iPID = 0; iPID < nPID; iPID++)
+	{
+		entriesParPlate = 0;
+		int plate0 = pvr->GetPattern(iPID)->Plate();
+		int plate1 = plate0 + cellLength;
+		int plate2 = plate1 + cellLength;
+		// loop over the tracks
+		for (int itrk = 0; itrk < ntrk; itrk++)
+		{
+			EdbTrackP *t = pvr->GetTrack(itrk);
+			const int npl = t->Npl();
+			if (npl <= cellLength * 2)
+			{
+				continue;
+			}
+			// printf("this tracks has enough npl\n");
+			int nseg = t->N();
+			int count = 0;
+			int iseg0, iseg1, iseg2;
+			// loop over the segments
+			for (int iseg = 0; iseg < nseg; iseg++)
+			{
+				EdbSegP *s = t->GetSegment(iseg);
+				int plateOfTheSegment = s->Plate();
+				if (plateOfTheSegment > plate2)
+				{
+					break;
+				}
+				if (plateOfTheSegment == plate0)
+				{
+					count++;
+					iseg0 = iseg;
+				}
+				if (plateOfTheSegment == plate1)
+				{
+					count++;
+					iseg1 = iseg;
+				}
+				if (plateOfTheSegment == plate2)
+				{
+					count++;
+					iseg2 = iseg;
+				}
+
+				// if (plateOfTheSegment < plate0)
+				// {
+				// 	continue;
+				// }
+				// if (plateOfTheSegment == plate0)
+				// {
+				// 	count++;
+				// 	iseg0 = iseg;
+				// }
+				// if (plateOfTheSegment > plate0 && plateOfTheSegment < plate1)
+				// {
+				// 	if (count != 1)
+				// 	{
+				// 		break;
+				// 	}
+				// 	if (count == 1)
+				// 	{
+				// 		continue;
+				// 	}
+				// }
+				// if (plateOfTheSegment == plate1)
+				// {
+				// 	count++;
+				// 	iseg1 = iseg;
+				// }
+				// if (plateOfTheSegment > plate1 && plateOfTheSegment < plate2)
+				// {
+				// 	if (count != 2)
+				// 	{
+				// 		break;
+				// 	}
+				// 	if (count == 2)
+				// 	{
+				// 		continue;
+				// 	}
+				// }
+				// if (plateOfTheSegment == plate2)
+				// {
+				// 	count++;
+				// 	iseg2 = iseg;
+				// }
+				// if (plateOfTheSegment > plate2)
+				// {
+				// 	break;
+				// }
+			}
+			if (3 != count)
+			{
+				continue;
+			}
+			EdbSegP *s0 = t->GetSegment(iseg0);
+			EdbSegP *s1 = t->GetSegment(iseg1);
+			EdbSegP *s2 = t->GetSegment(iseg2);
+
+			double X0 = s0->X();
+			double Y0 = s0->Y();
+			double Z0 = s0->Z();
+
+			double X1 = s1->X();
+			double Y1 = s1->Y();
+			double Z1 = s1->Z();
+
+			double X2 = s2->X();
+			double Y2 = s2->Y();
+			double Z2 = s2->Z();
+
+			double X2prediction = X1 + (X1 - X0) / (Z1 - Z0) * (Z2 - Z1); // prediction by extrapolating with z correction
+			double Y2prediction = Y1 + (Y1 - Y0) / (Z1 - Z0) * (Z2 - Z1); // prediction by extrapolating with z correction
+			secondDifferenceX[entriesParPlate] = X2 - X2prediction;
+			secondDifferenceY[entriesParPlate] = Y2 - Y2prediction;
+			slopeX[entriesParPlate] = (X1 - X0) / (Z1 - Z0);
+			slopeY[entriesParPlate] = (Y1 - Y0) / (Z1 - Z0);
+			entriesParPlate++;
+		}
+		plate = plate2;
+		secondDifferenceTree->Fill();
+	}
+	return secondDifferenceTree;
 }
 void FnuQualityCheck::PrintSummaryPlot()
 {

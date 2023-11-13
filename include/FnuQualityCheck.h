@@ -44,6 +44,8 @@ private:
     TH2D *deltaX2DHist;
     TH2D *deltaY2DHist;
     TH2D *entries2DHist;
+    double *secondDifferenceX, *secondDifferenceY, *slopeX, *slopeY;
+    int entriesParPlate;
 
 public:
     FnuQualityCheck(EdbPVRec *pvr, TString title);
@@ -51,6 +53,7 @@ public:
     // methods for position resolution
     void CalcDeltaXY(double Xcenter, double Ycenter, double bin_width);
     void FitDeltaXY();
+    void FitDeltaXYAllPlatesTogether();
     void CalcLSM(double x[], double y[], int N, double &a0, double &a1);
     void MakePosResGraphHist();
     void WritePosResGraphHist(TString filename);
@@ -89,7 +92,7 @@ public:
     void PrintFirstLastPlateHist(TString filename);
     void WriteFirstLastPlateHist(TString filename);
     // methods for second difference
-    void CalcSecondDifference(int cellLength);
+    TTree *CalcSecondDifference(int cellLength);
     // methods for summary plot
     void PrintSummaryPlot();
 };
