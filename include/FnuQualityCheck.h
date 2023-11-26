@@ -46,6 +46,7 @@ private:
     TH2D *entries2DHist;
     double *secondDifferenceX, *secondDifferenceY, *slopeX, *slopeY;
     int entriesParPlate;
+    TH1D *secondDifferenceHist;
 
 public:
     FnuQualityCheck(EdbPVRec *pvr, TString title);
@@ -93,6 +94,7 @@ public:
     void WriteFirstLastPlateHist(TString filename);
     // methods for second difference
     TTree *CalcSecondDifference(int cellLength);
+    void MakeSecondDifferenceHist(TTree *secondDifferenceTree, int cellLength);
     // methods for summary plot
     void PrintSummaryPlot();
 };

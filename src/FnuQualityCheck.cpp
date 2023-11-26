@@ -75,6 +75,10 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 	// Loop over the tracks
 	for (int iPID = 2; iPID < nPID - 2; iPID++)
 	{
+		EdbPattern *pattern = pvr->GetPattern(iPID);
+		if (pattern == NULL)
+			continue;
+		plate = pattern->Plate();
 		for (int itrk = 0; itrk < ntrk; itrk++)
 		{
 			EdbTrackP *t = pvr->GetTrack(itrk);
@@ -153,7 +157,6 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 			tridV->push_back(t->ID());
 			nsegV->push_back(nseg);
 		}
-		plate = pvr->GetPattern(iPID)->Plate();
 		deltaXY->Fill();
 		deltaXV->clear();
 		deltaYV->clear();
@@ -597,7 +600,10 @@ void FnuQualityCheck::CalcEfficiency()
 		int nseg = t->N();
 		for (int iPID = 2; iPID < nPID - 2; iPID++)
 		{
-			int iplate = pvr->GetPattern(iPID)->Plate();
+			EdbPattern *pattern = pvr->GetPattern(iPID);
+			if (pattern == NULL)
+				continue;
+			int iplate = pattern->Plate();
 			int counts = 0;
 			hitsOnThePlate = 0;
 			W = 0;
@@ -928,7 +934,10 @@ TTree *FnuQualityCheck::CalcSecondDifference(int cellLength)
 	for (int iPID = 0; iPID < nPID; iPID++)
 	{
 		entriesParPlate = 0;
-		int plate0 = pvr->GetPattern(iPID)->Plate();
+		EdbPattern *pattern = pvr->GetPattern(iPID);
+		if (pattern == NULL)
+			continue;
+		int plate0 = pattern->Plate();
 		int plate1 = plate0 + cellLength;
 		int plate2 = plate1 + cellLength;
 		// loop over the tracks
@@ -968,52 +977,6 @@ TTree *FnuQualityCheck::CalcSecondDifference(int cellLength)
 					count++;
 					iseg2 = iseg;
 				}
-
-				// if (plateOfTheSegment < plate0)
-				// {
-				// 	continue;
-				// }
-				// if (plateOfTheSegment == plate0)
-				// {
-				// 	count++;
-				// 	iseg0 = iseg;
-				// }
-				// if (plateOfTheSegment > plate0 && plateOfTheSegment < plate1)
-				// {
-				// 	if (count != 1)
-				// 	{
-				// 		break;
-				// 	}
-				// 	if (count == 1)
-				// 	{
-				// 		continue;
-				// 	}
-				// }
-				// if (plateOfTheSegment == plate1)
-				// {
-				// 	count++;
-				// 	iseg1 = iseg;
-				// }
-				// if (plateOfTheSegment > plate1 && plateOfTheSegment < plate2)
-				// {
-				// 	if (count != 2)
-				// 	{
-				// 		break;
-				// 	}
-				// 	if (count == 2)
-				// 	{
-				// 		continue;
-				// 	}
-				// }
-				// if (plateOfTheSegment == plate2)
-				// {
-				// 	count++;
-				// 	iseg2 = iseg;
-				// }
-				// if (plateOfTheSegment > plate2)
-				// {
-				// 	break;
-				// }
 			}
 			if (3 != count)
 			{
@@ -1047,6 +1010,12 @@ TTree *FnuQualityCheck::CalcSecondDifference(int cellLength)
 		secondDifferenceTree->Fill();
 	}
 	return secondDifferenceTree;
+}
+void FnuQualityCheck::MakeSecondDifferenceHist(TTree *secondDifferenceTree, int cellLength)
+{
+	secondDifferenceHist = new TH1D("secondDifferenceHist", Form("second difference (cell length %d);second differecne (#mum);# tracks", cellLength), 100, -30, 30);
+	secondDifferenceTree->Draw("secondDiffX>>+secondDifferenceHist");
+	secondDifferenceTree->Draw("secondDiffY>>+secondDifferenceHist");
 }
 void FnuQualityCheck::PrintSummaryPlot()
 {
@@ -1171,6 +1140,9 @@ void FnuQualityCheck::PrintSummaryPlot()
 	legFirstLast->Draw();
 	gPad->UseCurrentStyle();
 	lastPlateHist->SetLineColor(kRed);
+
+	c.cd(8);
+	secondDifferenceHist->Draw();
 
 	c.Print("summary_plot_test.pdf");
 
