@@ -70,10 +70,9 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 	deltaXY->Branch("trid", &tridV);
 	deltaXY->Branch("nseg", &nsegV);
 	deltaXY->Branch("plate", &plate);
-	double tx3;
-	double ty3;
 	// Loop over the tracks
-	for (int iPID = 2; iPID < nPID - 2; iPID++)
+	// for (int iPID = 2; iPID < nPID - 2; iPID++)
+	for (int iPID = 0; iPID < nPID; iPID++)
 	{
 		EdbPattern *pattern = pvr->GetPattern(iPID);
 		if (pattern == NULL)
@@ -83,26 +82,59 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 		{
 			EdbTrackP *t = pvr->GetTrack(itrk);
 			int count = 0;
-			double x[5];
-			double y[5];
-			double z[5];
+			int countForLSM = 0;
+			double arrayX[5], arrayY[5], arrayZ[5];
+			double arrayXForLSM[4], arrayYForLSM[4], arrayZForLSM[4];
+			double probedSegmentX, probedSegmentY, probedSegmentZ;
+			double probedSegmentTX, probedSegmentTY;
 			nseg = t->N();
 			for (int iseg = 0; iseg < nseg; iseg++)
 			{
 				EdbSegP *s = t->GetSegment(iseg);
 				int sPID = s->PID();
-				if (sPID > iPID + 2)
-					break;
-				if (sPID < iPID - 2)
-					continue;
-				x[sPID - iPID + 2] = s->X();
-				y[sPID - iPID + 2] = s->Y();
-				z[sPID - iPID + 2] = s->Z();
+				if(iPID==0) //first plate
+				{
+					if(sPID>iPID+4)
+						break;
+				}
+				if(iPID==1) //second plate
+				{
+					if(sPID>iPID+3)
+						break;
+				}
+				if(iPID>=2&&iPID<nPID-2) //mid plate
+				{
+					if (sPID > iPID + 2)
+						break;
+					if (sPID < iPID - 2)
+						continue;
+				}
+				if(iPID==nPID-2) //second plate from last plate
+				{
+					if(sPID<iPID-3)
+						continue;
+				}
+				if(iPID==nPID-1) //last plate
+				{
+					if(sPID<iPID-4)
+						continue;
+				}
+				arrayX[count] = s->X();
+				arrayY[count] = s->Y();
+				arrayZ[count] = s->Z();
 				count++;
 				if (sPID == iPID)
 				{
-					tx3 = s->TX();
-					ty3 = s->TY();
+					probedSegmentX= s->X();
+					probedSegmentY= s->Y();
+					probedSegmentZ= s->Z();
+					probedSegmentTX = s->TX();
+					probedSegmentTY = s->TY();
+				}else{
+					arrayXForLSM[countForLSM] = s->X();
+					arrayYForLSM[countForLSM] = s->Y();
+					arrayZForLSM[countForLSM] = s->Z();
+					countForLSM++;
 				}
 				if (count == 5)
 					break;
@@ -113,8 +145,8 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 			int areaY[5];
 			for (int ipoint = 0; ipoint < 5; ipoint++)
 			{
-				areaX[ipoint] = (x[ipoint] - (Xcenter - XYrange)) / bin_width;
-				areaY[ipoint] = (y[ipoint] - (Ycenter - XYrange)) / bin_width;
+				areaX[ipoint] = (arrayX[ipoint] - (Xcenter - XYrange)) / bin_width;
+				areaY[ipoint] = (arrayY[ipoint] - (Ycenter - XYrange)) / bin_width;
 			}
 			int cross_the_line = 0;
 			for (int ipoint = 0; ipoint < 5 - 1; ipoint++)
@@ -125,30 +157,17 @@ void FnuQualityCheck::CalcDeltaXY(double Xcenter, double Ycenter, double bin_wid
 					break;
 				}
 			}
-			double x_updown[4], y_updown[4], z_updown[4];
-			for (int i = 0; i < 2; i++)
-			{
-				x_updown[i] = x[i];
-				y_updown[i] = y[i];
-				z_updown[i] = z[i];
-			}
-			for (int i = 2; i < 4; i++)
-			{
-				x_updown[i] = x[i + 1];
-				y_updown[i] = y[i + 1];
-				z_updown[i] = z[i + 1];
-			}
 			double a0, slopeX, slopeY;
-			CalcLSM(z_updown, x_updown, 4, a0, slopeX);
-			double x3fit = a0 + slopeX * z[2];
-			CalcLSM(z_updown, y_updown, 4, a0, slopeY);
-			double y3fit = a0 + slopeY * z[2];
+			CalcLSM(arrayZForLSM, arrayXForLSM, 4, a0, slopeX);
+			double x3fit = a0 + slopeX * probedSegmentZ;
+			CalcLSM(arrayZForLSM, arrayYForLSM, 4, a0, slopeY);
+			double y3fit = a0 + slopeY * probedSegmentZ;
 
 			// Calculate delta X and delta Y.
-			deltaXV->push_back(x[2] - x3fit);
-			deltaYV->push_back(y[2] - y3fit);
-			deltaTXV->push_back(tx3 - slopeX);
-			deltaTYV->push_back(ty3 - slopeY);
+			deltaXV->push_back(probedSegmentX - x3fit);
+			deltaYV->push_back(probedSegmentY - y3fit);
+			deltaTXV->push_back(probedSegmentTX - slopeX);
+			deltaTYV->push_back(probedSegmentTY - slopeY);
 			xV->push_back(t->X());
 			yV->push_back(t->Y());
 			slopeXV->push_back(slopeX);
@@ -598,7 +617,8 @@ void FnuQualityCheck::CalcEfficiency()
 	{
 		EdbTrackP *t = pvr->GetTrack(itrk);
 		int nseg = t->N();
-		for (int iPID = 2; iPID < nPID - 2; iPID++)
+
+		for (int iPID = 0; iPID < nPID; iPID++)
 		{
 			EdbPattern *pattern = pvr->GetPattern(iPID);
 			if (pattern == NULL)
@@ -611,25 +631,112 @@ void FnuQualityCheck::CalcEfficiency()
 			{
 				EdbSegP *s = t->GetSegment(iseg);
 				int sPID = s->PID();
-				if (sPID > iPID + 2)
-					break;
-				if (sPID < iPID - 2)
-					continue;
-				if (sPID == iPID - 2 || sPID == iPID + 2)
-					counts++;
-				if (sPID == iPID - 1)
+				if (iPID == 0) // first plate
 				{
-					x1 = s->X();
-					y1 = s->Y();
-					z1 = s->Z();
-					counts++;
+					if (sPID > iPID + 4)
+						break;
+					if (sPID == iPID + 4 || sPID == iPID + 3)
+						counts++;
+					if (sPID == iPID + 1)
+					{
+						x1 = s->X();
+						y1 = s->Y();
+						z1 = s->Z();
+						counts++;
+					}
+					if (sPID == iPID + 2)
+					{
+						x2 = s->X();
+						y2 = s->Y();
+						z2 = s->Z();
+						counts++;
+					}
 				}
-				if (sPID == iPID + 1)
+				if (iPID == 1) // second plate
 				{
-					x2 = s->X();
-					y2 = s->Y();
-					z2 = s->Z();
-					counts++;
+					if (sPID > iPID + 3)
+						break;
+					if (sPID == iPID + 3 || sPID == iPID + 2)
+						counts++;
+					if (sPID == iPID - 1)
+					{
+						x1 = s->X();
+						y1 = s->Y();
+						z1 = s->Z();
+						counts++;
+					}
+					if (sPID == iPID + 1)
+					{
+						x2 = s->X();
+						y2 = s->Y();
+						z2 = s->Z();
+						counts++;
+					}
+				}
+				if (iPID >= 2 && iPID < nPID - 2) // mid plate
+				{
+					if (sPID > iPID + 2)
+						break;
+					if (sPID < iPID - 2)
+						continue;
+					if (sPID == iPID - 2 || sPID == iPID + 2)
+						counts++;
+					if (sPID == iPID - 1)
+					{
+						x1 = s->X();
+						y1 = s->Y();
+						z1 = s->Z();
+						counts++;
+					}
+					if (sPID == iPID + 1)
+					{
+						x2 = s->X();
+						y2 = s->Y();
+						z2 = s->Z();
+						counts++;
+					}
+				}
+				if (iPID == nPID - 2) // second from last plate
+				{
+					if (sPID < iPID - 3)
+						continue;
+					if (sPID == iPID - 3 || sPID == iPID - 2)
+						counts++;
+					if (sPID == iPID - 1)
+					{
+						x1 = s->X();
+						y1 = s->Y();
+						z1 = s->Z();
+						counts++;
+					}
+					if (sPID == iPID + 1)
+					{
+						x2 = s->X();
+						y2 = s->Y();
+						z2 = s->Z();
+						counts++;
+					}
+				}
+				if (iPID == nPID - 1) // last plate
+				{
+					if (sPID < iPID - 4)
+						continue;
+					if (sPID == iPID - 4 || sPID == iPID - 3)
+						counts++;
+					if (sPID == iPID - 2)
+					{
+						x1 = s->X();
+						y1 = s->Y();
+						z1 = s->Z();
+						counts++;
+					}
+					if (sPID == iPID - 1)
+					{
+						x2 = s->X();
+						y2 = s->Y();
+						z2 = s->Z();
+						counts++;
+					}
 				}
 				if (sPID == iPID)
 				{
@@ -647,8 +754,22 @@ void FnuQualityCheck::CalcEfficiency()
 				eachTXEfficiency->Fill(hitsOnThePlate, TX);
 				eachTYEfficiency->Fill(hitsOnThePlate, TY);
 				trackID = t->ID();
-				x = (x1 + x2) / 2;
-				y = (y1 + y2) / 2;
+				plate = iplate;
+				if (iPID == 0)
+				{
+					x = 2 * x1 - x2;
+					y = 2 * y1 - y2;
+				}
+				if (iPID >= 1 && iPID < nPID - 1)
+				{
+					x = (x1 + x2) / 2;
+					y = (y1 + y2) / 2;
+				}
+				if (iPID == nPID - 1)
+				{
+					x = 2 * x2 - x1;
+					y = 2 * y2 - y1;
+				}
 				effInfo->Fill();
 			}
 		}
@@ -762,6 +883,7 @@ void FnuQualityCheck::MakeAngleHist()
 	std::vector<double> angleYVec;
 	angleXVec.reserve(ntrk);
 	angleYVec.reserve(ntrk);
+	TH2D h2ForAngleCenterCalculation("h2ForAngleCenterCalculation", "angle;tan#theta_{x};tan#theta_{y}", 100, -0.02, 0.02, 100, -0.02, 0.02);
 	// loop over the tracks
 	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
@@ -783,21 +905,24 @@ void FnuQualityCheck::MakeAngleHist()
 		double TX, TY, a0;
 		CalcLSM(Z, X, nseg, a0, TX);
 		CalcLSM(Z, Y, nseg, a0, TY);
+		h2ForAngleCenterCalculation.Fill(TX, TY);
 		angleXVec.push_back(TX);
 		angleYVec.push_back(TY);
 	}
-	const auto angleXMean = std::accumulate(angleXVec.begin(), angleXVec.end(), 0.0) / angleXVec.size();
-	const auto angleYMean = std::accumulate(angleYVec.begin(), angleYVec.end(), 0.0) / angleYVec.size();
-	double halfRangeNarrow = 0.008;
-	double minXAxisNarrow = angleXMean - halfRangeNarrow;
-	double maxXAxisNarrow = angleXMean + halfRangeNarrow;
-	double minYAxisNarrow = angleYMean - halfRangeNarrow;
-	double maxYAxisNarrow = angleYMean + halfRangeNarrow;
+	int locmax, locmay, locmaz;
+	h2ForAngleCenterCalculation.GetMaximumBin(locmax, locmay, locmaz);
+	const double angleCenterX = h2ForAngleCenterCalculation.GetXaxis()->GetBinCenter(locmax);
+	const double angleCenterY = h2ForAngleCenterCalculation.GetYaxis()->GetBinCenter(locmay);
+	double halfRangeNarrow = 0.01;
+	double minXAxisNarrow = angleCenterX - halfRangeNarrow;
+	double maxXAxisNarrow = angleCenterX + halfRangeNarrow;
+	double minYAxisNarrow = angleCenterY - halfRangeNarrow;
+	double maxYAxisNarrow = angleCenterY + halfRangeNarrow;
 	double halfRangeWide = 0.3;
-	double minXAxisWide = angleXMean - halfRangeWide;
-	double maxXAxisWide = angleXMean + halfRangeWide;
-	double minYAxisWide = angleYMean - halfRangeWide;
-	double maxYAxisWide = angleYMean + halfRangeWide;
+	double minXAxisWide = angleCenterX - halfRangeWide;
+	double maxXAxisWide = angleCenterX + halfRangeWide;
+	double minYAxisWide = angleCenterY - halfRangeWide;
+	double maxYAxisWide = angleCenterY + halfRangeWide;
 	angleHistNarrow = new TH2D("angleHistNarrow", "angle distribution narrow (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisNarrow, maxXAxisNarrow, 200, minYAxisNarrow, maxYAxisNarrow);
 	angleHistWide = new TH2D("angleHistWide", "angle distribution wide (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisWide, maxXAxisWide, 200, minYAxisWide, maxYAxisWide);
 	for (int itrk = 0; itrk < angleXVec.size(); itrk++)
@@ -1013,11 +1138,11 @@ TTree *FnuQualityCheck::CalcSecondDifference(int cellLength)
 }
 void FnuQualityCheck::MakeSecondDifferenceHist(TTree *secondDifferenceTree, int cellLength)
 {
-	secondDifferenceHist = new TH1D("secondDifferenceHist", Form("second difference (cell length %d);second differecne (#mum);# tracks", cellLength), 100, -30, 30);
+	secondDifferenceHist = new TH1D("secondDifferenceHist", Form("second difference (cell length %d);second differecne (#mum);entries", cellLength), 100, -30, 30);
 	secondDifferenceTree->Draw("secondDiffX>>+secondDifferenceHist");
 	secondDifferenceTree->Draw("secondDiffY>>+secondDifferenceHist");
 }
-void FnuQualityCheck::PrintSummaryPlot()
+void FnuQualityCheck::Summarize()
 {
 	gStyle->SetPadLeftMargin(0.14);
 	gStyle->SetPadBottomMargin(0.12);
@@ -1056,7 +1181,7 @@ void FnuQualityCheck::PrintSummaryPlot()
 	// gPad->RedrawAxis();
 	gPad->UseCurrentStyle();
 
-	// angle distribution
+	// angle distribution narrow
 	c.cd(2);
 	gStyle->SetPadRightMargin(0.25);
 	TString angleHistNarrowOriginalTitle = angleHistNarrow->GetTitle();
@@ -1070,22 +1195,36 @@ void FnuQualityCheck::PrintSummaryPlot()
 	palette->SetY2NDC(0.68);
 	gPad->UseCurrentStyle();
 
-	// efficiency for each angle
+	// angle distribution wide
 	c.cd(3);
+	gStyle->SetPadRightMargin(0.25);
+	TString angleHistWideOriginalTitle = angleHistWide->GetTitle();
+	angleHistWide->SetTitle("angle distribution wide");
+	angleHistWide->Draw("colz");
+	gPad->UseCurrentStyle();
+	gPad->Update();
+	palette = (TPaletteAxis *)angleHistWide->GetListOfFunctions()->FindObject("palette");
+	palette->SetX1NDC(0.845);
+	palette->SetX2NDC(0.88);
+	palette->SetY2NDC(0.68);
+	gPad->UseCurrentStyle();
+
+	// efficiency for each angle
+	c.cd(4);
 	TString eachAngleEfficiencyOriginalTitle = eachAngleEfficiency->GetTitle();
 	eachAngleEfficiency->SetTitle("efficiency for each angle");
 	gPad->SetRightMargin(0.0);
 	eachAngleEfficiency->Draw();
 
 	// efficiency for each plate
-	c.cd(4);
+	c.cd(5);
 	TString eachPlateEfficiencyOriginalTitle = eachPlateEfficiency->GetTitle();
 	eachPlateEfficiency->SetTitle("efficiency for each plate");
 	gPad->SetRightMargin(0.0);
 	eachPlateEfficiency->Draw();
 
 	// position resolution in x and y for each plate
-	c.cd(5);
+	c.cd(6);
 	c.SetGridx(1);
 	gPad->SetRightMargin(0.0);
 	gPad->SetTopMargin(0.13);
@@ -1102,18 +1241,22 @@ void FnuQualityCheck::PrintSummaryPlot()
 	leg2->Draw();
 
 	// npl and nseg
-	c.cd(6);
+	c.cd(7);
 	gStyle->SetPadRightMargin(0.0);
 	gStyle->SetPadTopMargin(0.13);
 	gStyle->SetOptStat("e");
-	gStyle->SetStatH(0.05);
+	gStyle->SetStatH(0.09);
 	gStyle->SetStatW(0.2);
 	gStyle->SetStatX(1);
-	gStyle->SetStatY(0.87);
-	TString nplHistOriginalTitle = nplHist->GetTitle();
-	nplHist->SetTitle("nseg and npl");
-	nplHist->Draw();
-	nsegHist->Draw("sames");
+	gStyle->SetStatY(1);
+	auto nplHistMaxY = nplHist->GetMaximum();
+	auto nsegHistMaxY = nsegHist->GetMaximum();
+	auto maxY = std::max(nplHistMaxY, nsegHistMaxY);
+	auto minX = nplHist->GetBinCenter(nplHist->FindFirstBinAbove());
+	auto maxX = nplHist->GetBinCenter(nplHist->FindLastBinAbove());
+	gPad->DrawFrame(minX - (maxX - minX) * 0.05, 0.7, maxX + (maxX - minX) * 0.05, maxY * 2, "nseg and npl;nseg or npl;# tracks");
+	nplHist->Draw("sames");
+	nsegHist->Draw("same");
 	gPad->UseCurrentStyle();
 	gPad->Update();
 	nsegHist->SetLineColor(kRed);
@@ -1124,14 +1267,17 @@ void FnuQualityCheck::PrintSummaryPlot()
 	legNsegNpl->Draw();
 	gPad->SetLogy();
 
-	c.cd(7);
-	TString firstPlateHistOriginalTitle = firstPlateHist->GetTitle();
-	firstPlateHist->SetTitle("start and end plate");
+	// first and last plate
+	c.cd(8);
 	gPad->SetTopMargin(0.13);
 	gPad->SetRightMargin(0);
-	gStyle->SetOptStat("e");
-	gStyle->SetStatY(0.87);
-	firstPlateHist->Draw();
+	// gStyle->SetOptStat("e");
+	// gStyle->SetStatY(0.87);
+	auto firstPlateHistMaxY = firstPlateHist->GetMaximum();
+	auto lastPlateHistMaxY = lastPlateHist->GetMaximum();
+	maxY = std::max(firstPlateHistMaxY, lastPlateHistMaxY);
+	gPad->DrawFrame(plMin - (plMax - plMin) * 0.05, 0, plMax + (plMax - plMin) * 0.05, maxY * 1.05, "start and end plate;plate;# tracks");
+	firstPlateHist->Draw("sames");
 	lastPlateHist->Draw("same");
 	TLegend *legFirstLast = new TLegend(0.3, 0.87, 1.0, 0.93);
 	legFirstLast->AddEntry(firstPlateHist, "first plate", "l");
@@ -1141,8 +1287,33 @@ void FnuQualityCheck::PrintSummaryPlot()
 	gPad->UseCurrentStyle();
 	lastPlateHist->SetLineColor(kRed);
 
-	c.cd(8);
+	// second difference
+	c.cd(9);
+	int cellLengthMaxAvailable = (nPID - 1) / 2;
+	if (cellLengthMaxAvailable >= 32)
+		cellLengthMaxAvailable = 32;
+	if (cellLengthMaxAvailable >= 16 && cellLengthMaxAvailable < 32)
+		cellLengthMaxAvailable = 16;
+	if (cellLengthMaxAvailable >= 8 && cellLengthMaxAvailable < 16)
+		cellLengthMaxAvailable = 8;
+	if (cellLengthMaxAvailable >= 4 && cellLengthMaxAvailable < 8)
+		cellLengthMaxAvailable = 4;
+	if (cellLengthMaxAvailable >= 2 && cellLengthMaxAvailable < 4)
+		cellLengthMaxAvailable = 2;
+	if (cellLengthMaxAvailable >= 1 && cellLengthMaxAvailable < 2)
+		cellLengthMaxAvailable = 1;
+	TTree *secondDifferenceTree = CalcSecondDifference(cellLengthMaxAvailable);
+	MakeSecondDifferenceHist(secondDifferenceTree, cellLengthMaxAvailable);
+	gPad->SetTopMargin(0.13);
+	gPad->SetRightMargin(0);
+	// gStyle->SetOptStat("e");
+	// gStyle->SetStatY(0.87);
 	secondDifferenceHist->Draw();
+	gPad->UseCurrentStyle();
+
+	c.cd(10);
+	TText tx;
+	tx.DrawTextNDC(0.1, 0.9, title);
 
 	c.Print("summary_plot_test.pdf");
 
@@ -1151,8 +1322,6 @@ void FnuQualityCheck::PrintSummaryPlot()
 	angleHistNarrow->SetTitle(angleHistNarrowOriginalTitle);
 	eachAngleEfficiency->SetTitle(eachAngleEfficiencyOriginalTitle);
 	eachPlateEfficiency->SetTitle(eachPlateEfficiencyOriginalTitle);
-	nplHist->SetTitle(nplHistOriginalTitle);
-	firstPlateHist->SetTitle(firstPlateHistOriginalTitle);
 
 	// set default style
 	gROOT->SetStyle("Modern");
