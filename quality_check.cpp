@@ -6,12 +6,12 @@
 
 int main(int argc, char *argv[])
 {
+	auto start = std::chrono::system_clock::now();
 	if (argc < 6)
 	{
 		printf("Usage: ./test_FnuQualityCheck linked_tracks.root title Xcenter Ycenter binWidth\n");
 		return 1;
 	}
-	auto start = std::chrono::system_clock::now();
 
 	TString filename_linked_tracks = argv[1];
 	TString title = argv[2];
@@ -24,8 +24,9 @@ int main(int argc, char *argv[])
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
 
-	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=5");
-	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
+	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=4");
+	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$%20000==0");
+	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<20000");
 
 	TObjArray *tracks = pvr->GetTracks();
 	int ntrk = tracks->GetEntriesFast();
@@ -42,7 +43,7 @@ int main(int argc, char *argv[])
 	// qc.WriteMeanDeltaXY("deltaXY_XYdis/mean_deltaXY_" + title + ".root"); // Writing should be done after all methods that use a related tree.
 	qc.FitDeltaXY();
 	qc.MakePosResGraphHist();
-	TString outputDir = "/data/Users/kokui/FASERnu/F222/zone4/temp/TFD/vert32063_pl053_167_new/reco32_065000_050000/v15/";
+	TString outputDir = "/data/Users/kokui/FASERnu/F222/zone4/candidates/vert10266_pl253-367/reco10_005000_020000/v35/";
 	// qc.WriteDeltaXY(outputDir + "deltaXY/tree_" + title + ".root");
 	// qc.PrintPosResGraphHist(outputDir + "pos_res/sigma_par_" + title + ".pdf");
 	// qc.WritePosResGraphHist(outputDir + "pos_res/graph_hist_" + title + ".root");
@@ -68,18 +69,19 @@ int main(int argc, char *argv[])
 	// qc.PrintFirstLastPlateHist("first_last_plate_" + title + ".pdf");
 	// qc.WriteFirstLastPlateHist("first_last_plate_" + title + ".root");
 
-	TTree *secondDifferenceTree = qc.CalcSecondDifference(32);
+	// TTree *secondDifferenceTree = qc.CalcSecondDifference(32);
+	
+	// TFile fout(title+".root","recreate");
+	// secondDifferenceTree->Write();
+	// fout.Close();
+	// TFile fin("test.root");
+	// TTree *secondDifferenceTree = (TTree*)gDirectory->Get("secondDifferenceTree");
+	// qc.MakeSecondDifferenceHist(secondDifferenceTree, 32);
+
+	qc.Summarize();
 	auto end = std::chrono::system_clock::now();
 	auto dur = end - start;
 	auto secondsPassed = std::chrono::duration_cast<std::chrono::seconds>(dur).count();
 	std::cout << secondsPassed << "seconds\n";
-	// TFile fout(title+".root","recreate");
-	// secondDifferenceTree->Write();
-	// fout.Close();
-	// TFile fin("test.pdf");
-	// TTree *secondDifferenceTree = (TTree*)gDirectory->Get("secondDifferenceTree");
-	qc.MakeSecondDifferenceHist(secondDifferenceTree, 32);
-
-	qc.PrintSummaryPlot();
 	return 0;
 }
