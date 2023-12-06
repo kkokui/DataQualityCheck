@@ -96,5 +96,5 @@ public:
     TTree *CalcSecondDifference(int cellLength);
     void MakeSecondDifferenceHist(TTree *secondDifferenceTree, int cellLength);
     // methods for summary plot
-    void PrintSummaryPlot();
+    void Summarize();
 };
