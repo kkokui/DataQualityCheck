@@ -352,6 +352,7 @@ void FnuQualityCheck::MakePosResGraphHist()
 {
 	// Make graphs and histograms about position resolution.
 	// This makes graphs of mean:plate, histograms of position resolution and graphs of position resolution : plate.
+
 	// meanX and meanY : plate
 	posResPar->Draw("meanX:plate");
 	int N = posResPar->GetSelectedRows();
@@ -586,6 +587,191 @@ int FnuQualityCheck::PrintMeanDeltaXYArrowPlot(TString filename)
 	c.Print(filename + "]");
 	return nent;
 }
+
+TTree *FnuQualityCheck::MakeHistDeltaTXY(TTree *deltaXY)
+{
+	hdeltaTX = new TH1D("hdeltaTX", "hdeltaTX", 100, -0.02, 0.02);
+	hdeltaTY = new TH1D("hdeltaTY", "hdeltaTY", 100, -0.02, 0.02);
+	TTree *treeHistDeltaTXY = new TTree("treeHistDeltaTXY","tree for histograms of delta TX and TY");
+	treeHistDeltaTXY->Branch("hdeltaTX", &hdeltaTX);
+	treeHistDeltaTXY->Branch("hdeltaTY", &hdeltaTY);
+	treeHistDeltaTXY->Branch("plate", &plate);
+
+	deltaXY->SetBranchAddress("deltaTX",&deltaTXV);
+	deltaXY->SetBranchAddress("deltaTY",&deltaTYV);
+	deltaXY->SetBranchAddress("slopeX",&slopeXV);
+	deltaXY->SetBranchAddress("slopeY",&slopeYV);
+	deltaXY->SetBranchAddress("plate",&plate);
+	TBranch *deltaTXB = deltaXY->GetBranch("deltaTX");
+	TBranch *deltaTYB = deltaXY->GetBranch("deltaTY");
+	TBranch *slopeXB = deltaXY->GetBranch("slopeX");
+	TBranch *slopeYB = deltaXY->GetBranch("slopeY");
+	TBranch *plateB = deltaXY->GetBranch("plate");
+
+	for (int ient = 0; ient < deltaXY->GetEntriesFast(); ient++)
+	{
+		deltaTXB->GetEntry(ient);
+		deltaTYB->GetEntry(ient);
+		slopeXB->GetEntry(ient);
+		slopeYB->GetEntry(ient);
+		plateB->GetEntry(ient);
+		const auto slopeXMean = std::accumulate(slopeXV->begin(), slopeXV->end(), 0.0) / slopeXV->size();
+		const auto slopeYMean = std::accumulate(slopeYV->begin(), slopeYV->end(), 0.0) / slopeYV->size();
+		for (int i = 0; i < deltaTXV->size(); i++)
+		{
+			if (fabs(deltaTYV->at(i)) <= 0.02 && fabs(deltaTXV->at(i)) <= 0.02 && fabs(slopeXV->at(i) - slopeXMean) < angleCut && fabs(slopeYV->at(i) - slopeYMean) < angleCut)
+			{
+				hdeltaTX->Fill(deltaTXV->at(i));
+				hdeltaTY->Fill(deltaTYV->at(i));
+			}
+		}
+		hdeltaTX->SetTitle(Form("pl%d %s;deltaX (#mum);", plate, title.Data()));
+		hdeltaTY->SetTitle(Form("pl%d %s;deltaY (#mum);", plate, title.Data()));
+		treeHistDeltaTXY->Fill();
+		hdeltaTX->Reset();
+		hdeltaTY->Reset();
+	}
+	return treeHistDeltaTXY;
+}
+void FnuQualityCheck::PrintDeltaTXYHist(TTree *treeHistDeltaTXY,TString filename)
+{
+	TCanvas c;
+	// c.Print("pos_res/deltaxy_" + title + ".pdf[");
+	c.Print(filename + "[");
+	for (int ient = 0; ient < treeHistDeltaTXY->GetEntriesFast(); ient++)
+	{
+		treeHistDeltaTXY->GetEntry(ient);
+		hdeltaTX->Draw();
+		// c.Print("pos_res/deltaxy_" + title + ".pdf");
+		c.Print(filename);
+		hdeltaTY->Draw();
+		// c.Print("pos_res/deltaxy_" + title + ".pdf");
+		c.Print(filename);
+		// printf("Histograms for plate %d have been printed\n", plate);
+	}
+	// c.Print("pos_res/deltaxy_" + title + ".pdf]");
+	c.Print(filename + "]");
+}
+TTree *FnuQualityCheck::FitHistDeltaTXY(TTree *treeHistDeltaTXY)
+{
+	// Create histograms of delta tx and ty and fit them.
+	TTree *angleResolutionPar = new TTree("angleResolutionPar","parameters for angle resolution");
+	angleResolutionPar->Branch("sigmaTX", &sigmaTX);
+	angleResolutionPar->Branch("sigmaTY", &sigmaTY);
+	angleResolutionPar->Branch("meanTX", &meanTX);
+	angleResolutionPar->Branch("meanTY", &meanTY);
+	angleResolutionPar->Branch("entries", &entries);
+	angleResolutionPar->Branch("plate", &plate);
+	treeHistDeltaTXY->SetBranchAddress("hdeltaTX",&hdeltaTX);
+	treeHistDeltaTXY->SetBranchAddress("hdeltaTY",&hdeltaTY);
+	TF1 *f = new TF1("gaus", "gaus", -0.02, 0.02);
+	// f->SetParLimits(5, 0, 0.4);
+	gStyle->SetOptFit();
+	for (int ient = 0; ient < treeHistDeltaTXY->GetEntriesFast(); ient++)
+	{
+		treeHistDeltaTXY->GetEntry(ient);
+		hdeltaTX->Draw();
+		f->SetParameters(1000, 0, 0.2);
+		meanTX = hdeltaTX->GetMean();
+		double RMSX = hdeltaTX->GetRMS();
+		hdeltaTX->Fit(f, "Q", "", meanTX - RMSX, meanTX + RMSX);
+		entries = hdeltaTX->GetEntries();
+		sigmaTX = f->GetParameter(2);
+		hdeltaTY->Draw();
+		f->SetParameters(1000, 0, 0.2);
+		meanTY = hdeltaTY->GetMean();
+		double RMSY = hdeltaTY->GetRMS();
+		hdeltaTY->Fit(f, "Q", "", meanTY - RMSY, meanTY + RMSY);
+		entries = hdeltaTY->GetEntries();
+		sigmaTY = f->GetParameter(2);
+		angleResolutionPar->Fill();
+	}
+	return angleResolutionPar;
+}
+void FnuQualityCheck::MakeGraphHistAngleResolution(TTree *angleResolutionPar)
+{
+	// Make graphs and histograms about angle resolution.
+	// This makes graphs of mean:plate, histograms of angle resolution and graphs of angle resolution : plate.
+
+	// meanTX and meanTY : plate
+	angleResolutionPar->Draw("meanTX:plate");
+	int N = angleResolutionPar->GetSelectedRows();
+	meanTXGraph = new TGraph(N, angleResolutionPar->GetV2(), angleResolutionPar->GetV1());
+	meanTXGraph->SetMarkerStyle(20);
+	meanTXGraph->SetMarkerColor(kRed);
+	meanTXGraph->SetNameTitle("meanTYGraph", "mean TY (" + title + ");plate;mean (tan#theta)");
+	angleResolutionPar->Draw("meanTY:plate");
+	N = angleResolutionPar->GetSelectedRows();
+	meanTYGraph = new TGraph(N, angleResolutionPar->GetV2(), angleResolutionPar->GetV1());
+	meanTYGraph->SetMarkerStyle(20);
+	meanTYGraph->SetMarkerColor(kBlue);
+	meanTYGraph->SetNameTitle("meanTXGraph", "mean TX (" + title + ");plate;mean (tan#theta)");
+
+	// sigmaTX and sigmaTY
+	sigmaTXHist = new TH1D("sigmaTXHist", "angular resolution X (" + title + ");angular resolution (tan#theta)", 100, 0, 0.005);
+	angleResolutionPar->Draw("sigmaTX>>sigmaTXHist", "abs(meanTX)<0.005&&entries>0");
+	sigmaTYHist = new TH1D("sigmaTYHist", "angular resolution Y (" + title + ");angular resolution (tan#theta)", 100, 0, 0.005);
+	angleResolutionPar->Draw("sigmaTY>>sigmaTYHist", "abs(meanTY)<0.005&&entries>0");
+
+	// sigmaTX and sigmaTY:pl
+	angleResolutionPar->Draw("sigmaTX:plate");
+	N = angleResolutionPar->GetSelectedRows();
+	sigmaTXGraph = new TGraph(N, angleResolutionPar->GetV2(), angleResolutionPar->GetV1());
+	sigmaTXGraph->SetMarkerStyle(20);
+	sigmaTXGraph->SetMarkerColor(kRed);
+	sigmaTXGraph->SetNameTitle("sigmaTXGraph", "angular resolution X (" + title + ");plate;angular resolution (tan#theta)");
+	angleResolutionPar->Draw("sigmaTY:plate");
+	N = angleResolutionPar->GetSelectedRows();
+	sigmaTYGraph = new TGraph(N, angleResolutionPar->GetV2(), angleResolutionPar->GetV1());
+	sigmaTYGraph->SetMarkerStyle(20);
+	sigmaTYGraph->SetMarkerColor(kBlue);
+	sigmaTYGraph->SetNameTitle("sigmaTYGraph", "angular resolution Y (" + title + ");plate;angular resolution (tan#theta)");
+}
+void FnuQualityCheck::PrintGraphHistAngleResolution(TString filename)
+{
+	// int plMax = posResPar->GetMaximum("pl");
+	// int plMin = posResPar->GetMinimum("pl");
+	TCanvas *c1 = new TCanvas();
+	c1->Print(filename + "[");
+
+	// meanTX and meanTY : plate
+	c1->SetGridx(1);
+	TMultiGraph *mg = new TMultiGraph("mg", "mean:plate " + title + ";plate;mean (tan#theta)");
+	mg->Add(meanTXGraph);
+	mg->Add(meanTYGraph);
+	mg->Draw("ap");
+	TLegend *leg = new TLegend(0.9, 0.8, 1.0, 0.9);
+	leg->AddEntry(meanTXGraph, "meanTX", "p");
+	leg->AddEntry(meanTYGraph, "meanTY", "p");
+	leg->Draw();
+	c1->Print(filename);
+	c1->SetGridx(0);
+
+	// sigmaTX and sigmaTY
+	TList *l = new TList;
+	l->Add(sigmaTXHist);
+	l->Add(sigmaTYHist);
+	TH1F *resolution = new TH1F("resolution", "angular resolution (" + title + ");angular resolution (tan#theta)", 100, 0, 0.005);
+	resolution->Merge(l);
+	resolution->Draw();
+	c1->Print(filename);
+
+	// sigmaTX and sigmaTY:pl
+	c1->SetGridx(1);
+	TMultiGraph *mg2 = new TMultiGraph("mg2", "sigma:plate (" + title + ");plate;sigma (tan#theta)");
+	mg2->Add(sigmaTXGraph);
+	mg2->Add(sigmaTYGraph);
+	mg2->Draw("ap");
+	TLegend *leg2 = new TLegend(0.9, 0.8, 1.0, 0.9);
+	leg2->AddEntry(sigmaTXGraph, "resolutionX", "p");
+	leg2->AddEntry(sigmaTYGraph, "resolutionY", "p");
+	leg2->Draw();
+	c1->Print(filename);
+	c1->Clear();
+	c1->Print(filename);
+	c1->Print(filename + "]");
+}
+
 void FnuQualityCheck::CalcEfficiency()
 {
 	double bins_angle[bins_vec_angle.size()];

@@ -19,7 +19,9 @@ private:
     int plMin;
     int plMax;
     TGraph *meanXGraph, *meanYGraph, *sigmaXGraph, *sigmaYGraph;
+    TGraph *meanTXGraph, *meanTYGraph, *sigmaTXGraph, *sigmaTYGraph;
     TH1D *sigmaXHist, *sigmaYHist;
+    TH1D *sigmaTXHist, *sigmaTYHist;
     std::vector<double> bins_vec_angle;
     std::vector<double> bins_vec_TXTY;
     TEfficiency *eachAngleEfficiency, *eachPlateEfficiency, *eachTXEfficiency, *eachTYEfficiency;
@@ -36,9 +38,10 @@ private:
     std::vector<double> *deltaXV, *deltaYV, *deltaTXV, *deltaTYV, *xV, *yV, *slopeXV, *slopeYV;
     std::vector<int> *crossTheLineV, *tridV, *nsegV;
     double sigmaX, sigmaY, meanX, meanY;
+    double sigmaTX, sigmaTY, meanTX, meanTY;
     int entries;
-    TH1D *hdeltaX;
-    TH1D *hdeltaY;
+    TH1D *hdeltaX,*hdeltaY;
+    TH1D *hdeltaTX,*hdeltaTY;
     int trackID, nseg, W, hitsOnThePlate;
     double x, y, angle, TX, TY;
     TH2D *deltaX2DHist;
@@ -65,6 +68,12 @@ public:
     void CalcMeanDeltaXY(double Xcenter, double Ycenter, double cellSize);
     int PrintMeanDeltaXYArrowPlot(TString filename);
     void WriteMeanDeltaXY(TString filename);
+    // angular resolution
+    TTree *MakeHistDeltaTXY(TTree *deltaXY);
+    TTree *FitHistDeltaTXY(TTree *treeHistDetlaTXY);
+    void PrintDeltaTXYHist(TTree *treeHistDetlaTXY, TString filename);
+    void MakeGraphHistAngleResolution(TTree *angleResolutionPar);
+    void PrintGraphHistAngleResolution(TString filename);
     // methods for efficiency
     void CalcEfficiency();
     void SetBinsAngle(int nbins, double bins[]);
