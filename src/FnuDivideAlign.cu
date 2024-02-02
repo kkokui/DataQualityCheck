@@ -189,8 +189,7 @@ void fitfuncRobust(Int_t &npar, Double_t *grad, Double_t &fval, Double_t *p, Int
 	{
 		delta2 += h_chi2[i];
 	}
-	// delta2/=nrobust;
-
+	
 	// regularization
 	//  double lambda = 0.1;
 	//  for(int i=0;i<nPID*2)
@@ -339,38 +338,7 @@ void FnuDivideAlign::ApplyAlign(EdbTrackP *t, double iX, double iY)
 		}
 	}
 }
-void FnuDivideAlign::ApplyAlignBicubic(EdbSegP *s,double Xcenter,double Ycenter)
-{
-	// Apply alignment to segments which passed a divided area
 
-	int pid = s->PID();
-
-	// get shift value calculated by divide align
-	// double 
-
-	// get x and y values of the segment
-	double segmentPositionX = s->X();
-	double segmentPositionY = s->Y();
-	// detect nearest middle position of division
-	int nearestMiddlePointNumberX = (segmentPositionX - (Xcenter - rangeXY) - binWidth/2) / binWidth;
-	int nearestMiddlePointNumberY = (segmentPositionY - (Ycenter - rangeXY) - binWidth/2) / binWidth;
-	double nearestMiddlePointPositionX = Xcenter - rangeXY + nearestMiddlePointNumberX*binWidth;
-	double nearestMiddlePointPositionY = Ycenter - rangeXY + nearestMiddlePointNumberY*binWidth;
-	// detect 16 reference values
-	double referencePositionX[4][4];
-	double referencePositionY[4][4];
-
-	double referenceShiftX[4][4];
-	double referenceShiftY[4][4];
-	// if(segmentPositionX<nearestBinPositionX)
-	// {
-
-	// 	referenceShiftX[0][0] = 
-	// }
-	// calculate alignment parameter
-	// apply alignment
-
-}
 int FnuDivideAlign::Align(TObjArray *tracks, double Xcenter, double Ycenter, int nPatterns)
 {
 	// Divide the area, Calculate alignment parameters and apply alignment
