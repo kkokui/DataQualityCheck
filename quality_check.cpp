@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 	auto start = std::chrono::system_clock::now();
 	if (argc < 6)
 	{
-		printf("Usage: ./test_FnuQualityCheck linked_tracks.root title Xcenter Ycenter binWidth\n");
+		printf("Usage: ./quality_check linked_tracks.root title Xcenter Ycenter binWidth\n");
 		return 1;
 	}
 
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 	// angleResolutionPar->Write();
 	// qc.PrintDeltaTXYHist(treeHistDetlaTXY,"test_histDeltaTXY.pdf");
 	qc.MakePosResGraphHist();
-	TString outputDir = "/data/Users/kokui/FASERnu/F222/zone4/temp/TFD/vert32063_pl053_167_new/reco32_065000_050000/v15/";
+	// TString outputDir = "/data/Users/kokui/FASERnu/F222/zone4/temp/TFD/vert32063_pl053_167_new/reco32_065000_050000/v15/";
 	// qc.PrintPosResGraphHist(outputDir + "pos_res/sigma_par_" + title + ".pdf");
 	// qc.WritePosResGraphHist(outputDir + "pos_res/graph_hist_" + title + ".root");
 	// qc.PrintDeltaXYHist(outputDir + "pos_res/deltaxy_hist_" + title + ".pdf");
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 	// qc.WritePositionHist("position_distribution_"+title+".root");
 	qc.MakeAngleHist();
 	// qc.PrintAngleHist("angle_distribution_"+title+".pdf");
-	qc.WriteAngleHist("angle_distribution_"+title+".root");
+	// qc.WriteAngleHist("angle_distribution_"+title+".root");
 	qc.MakeNsegHist();
 	// qc.PrintNsegHist("nseg_"+title+".pdf");
 	// qc.WriteNsegHist("nseg_"+title+".root");
