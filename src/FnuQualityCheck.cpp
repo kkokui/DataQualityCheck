@@ -1367,22 +1367,8 @@ void FnuQualityCheck::Summarize()
 	// gPad->RedrawAxis();
 	gPad->UseCurrentStyle();
 
-	// angle distribution narrow
-	c.cd(2);
-	gStyle->SetPadRightMargin(0.25);
-	TString angleHistNarrowOriginalTitle = angleHistNarrow->GetTitle();
-	angleHistNarrow->SetTitle("angle distribution narrow");
-	angleHistNarrow->Draw("colz");
-	gPad->UseCurrentStyle();
-	gPad->Update();
-	palette = (TPaletteAxis *)angleHistNarrow->GetListOfFunctions()->FindObject("palette");
-	palette->SetX1NDC(0.845);
-	palette->SetX2NDC(0.88);
-	palette->SetY2NDC(0.68);
-	gPad->UseCurrentStyle();
-
 	// angle distribution wide
-	c.cd(3);
+	c.cd(2);
 	gStyle->SetPadRightMargin(0.25);
 	TString angleHistWideOriginalTitle = angleHistWide->GetTitle();
 	angleHistWide->SetTitle("angle distribution wide");
@@ -1394,6 +1380,22 @@ void FnuQualityCheck::Summarize()
 	palette->SetX2NDC(0.88);
 	palette->SetY2NDC(0.68);
 	gPad->UseCurrentStyle();
+	gPad->SetLogz();
+
+	// angle distribution narrow
+	c.cd(3);
+	gStyle->SetPadRightMargin(0.25);
+	TString angleHistNarrowOriginalTitle = angleHistNarrow->GetTitle();
+	angleHistNarrow->SetTitle("angle distribution narrow");
+	angleHistNarrow->Draw("colz");
+	gPad->UseCurrentStyle();
+	gPad->Update();
+	palette = (TPaletteAxis *)angleHistNarrow->GetListOfFunctions()->FindObject("palette");
+	palette->SetX1NDC(0.845);
+	palette->SetX2NDC(0.88);
+	palette->SetY2NDC(0.68);
+	gPad->UseCurrentStyle();
+	gPad->SetLogz();
 
 	// efficiency for each angle
 	c.cd(4);
@@ -1414,7 +1416,7 @@ void FnuQualityCheck::Summarize()
 	c.SetGridx(1);
 	gPad->SetRightMargin(0.0);
 	gPad->SetTopMargin(0.13);
-	TMultiGraph *mg2 = new TMultiGraph("mg2", "position resolution for each plate");
+	TMultiGraph *mg2 = new TMultiGraph("mg2", "position resolution for each plate;plate;position resolution (#mum)");
 	sigmaXGraph->SetMarkerSize(0.5);
 	sigmaYGraph->SetMarkerSize(0.5);
 	mg2->Add(sigmaXGraph);
@@ -1462,7 +1464,7 @@ void FnuQualityCheck::Summarize()
 	auto firstPlateHistMaxY = firstPlateHist->GetMaximum();
 	auto lastPlateHistMaxY = lastPlateHist->GetMaximum();
 	maxY = std::max(firstPlateHistMaxY, lastPlateHistMaxY);
-	gPad->DrawFrame(plMin - (plMax - plMin) * 0.05, 0, plMax + (plMax - plMin) * 0.05, maxY * 1.05, "start and end plate;plate;# tracks");
+	gPad->DrawFrame(plMin - (plMax - plMin) * 0.05, 0.7, plMax + (plMax - plMin) * 0.05, maxY * 2, "start and end plate;plate;# tracks");
 	firstPlateHist->Draw("sames");
 	lastPlateHist->Draw("same");
 	TLegend *legFirstLast = new TLegend(0.3, 0.87, 1.0, 0.93);
@@ -1472,6 +1474,7 @@ void FnuQualityCheck::Summarize()
 	legFirstLast->Draw();
 	gPad->UseCurrentStyle();
 	lastPlateHist->SetLineColor(kRed);
+	gPad->SetLogy();
 
 	// second difference
 	c.cd(9);
