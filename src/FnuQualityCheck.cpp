@@ -1504,7 +1504,7 @@ void FnuQualityCheck::Summarize()
 	TText tx;
 	tx.DrawTextNDC(0.1, 0.9, title);
 
-	c.Print("summary_plot_test.pdf");
+	c.Print("summary_plot_"+title+".pdf");
 
 	// set original title
 	positionHist->SetTitle(positionHistOriginalTitle);

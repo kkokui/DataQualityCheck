@@ -7,9 +7,9 @@
 int main(int argc, char *argv[])
 {
 	auto start = std::chrono::system_clock::now();
-	if (argc < 6)
+	if (argc < 5)
 	{
-		printf("Usage: ./quality_check linked_tracks.root title Xcenter Ycenter binWidth\n");
+		printf("Usage: ./quality_check linked_tracks.root title Xcenter Ycenter\n");
 		return 1;
 	}
 
@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 	bin_width = 20000;
 	sscanf(argv[3], "%lf", &Xcenter);
 	sscanf(argv[4], "%lf", &Ycenter);
-	sscanf(argv[5], "%lf", &bin_width);
+	// sscanf(argv[5], "%lf", &bin_width);
 
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
