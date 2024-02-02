@@ -189,6 +189,7 @@ void fitfuncRobust(Int_t &npar, Double_t *grad, Double_t &fval, Double_t *p, Int
 	{
 		delta2 += h_chi2[i];
 	}
+	// delta2/=nrobust;
 
 	// regularization
 	//  double lambda = 0.1;
@@ -264,20 +265,20 @@ void FnuDivideAlign::CalcAlignPar(TObjArray *tracks, double iX, double iY, int f
 	// Set parameters of the middle plate
 	for (pid = 1; pid < nPID - 1; pid++)
 	{
-		minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0.1, -30, 30);
-		minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0.1, -30, 30);
+		minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0.1, 0, 0);
+		minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0.1, 0, 0);
 	}
 	// Set parameters of the last plate
 	pid = nPID - 1; // last plate
 	if (fixflag == 1)
 	{
-		minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0, 0, 0);
-		minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0, 0, 0);
+		minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0, 0,0);
+		minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0, 0,0);
 	}
 	else
 	{
-		minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0.1, -30, 30);
-		minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0.1, -30, 30);
+		minuit->SetParameter(2 * pid, Form("dx%d", pid), 0, 0.1, 0, 0);
+		minuit->SetParameter(2 * pid + 1, Form("dy%d", pid), 0, 0.1, 0, 0);
 	}
 
 	minuit->SetFCN(fitfuncRobust);
@@ -288,9 +289,9 @@ void FnuDivideAlign::CalcAlignPar(TObjArray *tracks, double iX, double iY, int f
 	minuit->ExecuteCommand("SET PRIntout", arglist, 1);
 
 	// minimize
-	arglist[0] = 200000; // number of function calls
-	arglist[1] = 0.001;	 // tolerance
-	minuit->SetMaxIterations(10000);
+	arglist[0] = 100000; // number of function calls
+	arglist[1] = 50;	 // tolerance of estimated verical distance to minimum
+	// minuit->SetMaxIterations(10000);
 	ncall = 0;
 	printf("Aligning iX = %.0f, iY = %.0f, ntrk = %d, robustFactor = %.1f\n", iX, iY, ntrk, robustFactor);
 	minuit->ExecuteCommand("MIGRAD2", arglist, 2);
@@ -338,7 +339,38 @@ void FnuDivideAlign::ApplyAlign(EdbTrackP *t, double iX, double iY)
 		}
 	}
 }
+void FnuDivideAlign::ApplyAlignBicubic(EdbSegP *s,double Xcenter,double Ycenter)
+{
+	// Apply alignment to segments which passed a divided area
 
+	int pid = s->PID();
+
+	// get shift value calculated by divide align
+	// double 
+
+	// get x and y values of the segment
+	double segmentPositionX = s->X();
+	double segmentPositionY = s->Y();
+	// detect nearest middle position of division
+	int nearestMiddlePointNumberX = (segmentPositionX - (Xcenter - rangeXY) - binWidth/2) / binWidth;
+	int nearestMiddlePointNumberY = (segmentPositionY - (Ycenter - rangeXY) - binWidth/2) / binWidth;
+	double nearestMiddlePointPositionX = Xcenter - rangeXY + nearestMiddlePointNumberX*binWidth;
+	double nearestMiddlePointPositionY = Ycenter - rangeXY + nearestMiddlePointNumberY*binWidth;
+	// detect 16 reference values
+	double referencePositionX[4][4];
+	double referencePositionY[4][4];
+
+	double referenceShiftX[4][4];
+	double referenceShiftY[4][4];
+	// if(segmentPositionX<nearestBinPositionX)
+	// {
+
+	// 	referenceShiftX[0][0] = 
+	// }
+	// calculate alignment parameter
+	// apply alignment
+
+}
 int FnuDivideAlign::Align(TObjArray *tracks, double Xcenter, double Ycenter, int nPatterns)
 {
 	// Divide the area, Calculate alignment parameters and apply alignment
@@ -350,6 +382,22 @@ int FnuDivideAlign::Align(TObjArray *tracks, double Xcenter, double Ycenter, int
 	alignPar->Branch("shiftX", &shiftXBranchValue);
 	alignPar->Branch("shiftY", &shiftYBranchValue);
 	alignPar->Branch("pid", &pidBranchValue);
+
+	// int nDivisionX = rangeXY*2/binWidth +1;
+	// int nDivisionY = rangeXY*2/binWidth +1;
+	// double ***shiftXEachDivision = new double**[nPatterns];
+	// double ***shiftYEachDivision = new double**[nPatterns];
+	// for(int pid=0;pid<nPatterns;pid++)
+	// {
+	// 	shiftXEachDivision[pid] = new double*[nDivisionX];
+	// 	shiftYEachDivision[pid] = new double*[nDivisionX];
+	// 	for(int iDivisionX=0;iDivisionX<nDivisionX;iDivisionX++)
+	// 	{
+	// 		shiftXEachDivision[pid][iDivisionX] = new double[nDivisionY];
+	// 		shiftYEachDivision[pid][iDivisionX] = new double[nDivisionY];
+	// 	}
+	// }
+
 	int ntrk = tracks->GetEntriesFast();
 
 	double angleXSum = 0;
@@ -365,6 +413,7 @@ int FnuDivideAlign::Align(TObjArray *tracks, double Xcenter, double Ycenter, int
 
 	// Divide the area into binWidth*binWidth um^2 areas
 	for (iYBranchValue = Ycenter - rangeXY + binWidth / 2; iYBranchValue <= Ycenter + rangeXY; iYBranchValue += binWidth)
+	// max of iY is not correct sometimes...
 	{
 		for (iXBranchValue = Xcenter - rangeXY + binWidth / 2; iXBranchValue <= Xcenter + rangeXY; iXBranchValue += binWidth)
 		{
@@ -374,6 +423,7 @@ int FnuDivideAlign::Align(TObjArray *tracks, double Xcenter, double Ycenter, int
 			{
 				EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
 				if (t->N() < 10 || abs(t->TX() -angleXMean) >= 0.01 || abs(t->TY() - angleYMean) >= 0.01)
+				// if (t->N() < 10 )
 				{
 					continue;
 				}
@@ -393,6 +443,8 @@ int FnuDivideAlign::Align(TObjArray *tracks, double Xcenter, double Ycenter, int
 				CalcAlignPar(tracks2, iXBranchValue, iYBranchValue, 0);
 			}
 
+			int iXID = (iXBranchValue - (Xcenter - rangeXY + binWidth / 2))/binWidth;
+			int iYID = (iYBranchValue - (Ycenter - rangeXY + binWidth / 2))/binWidth;
 			for (pidBranchValue = 0; pidBranchValue < nPID; pidBranchValue++)
 			{
 				shiftXBranchValue = p[pidBranchValue * 2];
