@@ -97,12 +97,12 @@ void multiple_arrow_plots()
         c0->cd(isubpad);
         // float robustFactor = irobust * 0.1;
         // fin = new TFile(Form("deltaXY_XYdis/mean_deltaXY_after_align_binWidth500_robustFactor%.1f.root", robustFactor));
-        fin = new TFile(Form("deltaXY_XYdis/mean_deltaXY_after_align_binWidth%.0f_robustFactor0.7.root", binWidth[ibinwidth]));
+        fin = new TFile(Form("deltaXY_XYdis/mean_deltaXY_after_align_binWidth%.0f_robustFactor1.0.root", binWidth[ibinwidth]));
         meanDeltaXY = (TTree *)gDirectory->Get("meanDeltaXY");
         // arrow_plot(meanDeltaXY, 2, Form("robust factor %.1f;x (#mum);y (#mum)", robustFactor));
         arrow_plot(meanDeltaXY, 2, Form("%.1f mm division;x (#mum);y (#mum)", binWidth[ibinwidth] / 1000));
         delete fin;
     }
     // c0->Print("multiple_arrow_plots_different_robust_factor.pdf");
-    c0->Print("multiple_arrow_plots_different_bin_width.pdf");
+    c0->Print("multiple_arrow_plots_different_bin_width_robust1.0.pdf");
 }
