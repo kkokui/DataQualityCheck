@@ -10,7 +10,6 @@ private:
     TTree *posResPar;
     TTree *htree;
     TTree *meanDeltaXY;
-    TTree *effInfo;
     TString title;
     int ntrk;
     int nPID;
@@ -22,9 +21,6 @@ private:
     TGraph *meanTXGraph, *meanTYGraph, *sigmaTXGraph, *sigmaTYGraph;
     TH1D *sigmaXHist, *sigmaYHist;
     TH1D *sigmaTXHist, *sigmaTYHist;
-    std::vector<double> bins_vec_angle;
-    std::vector<double> bins_vec_TXTY;
-    TEfficiency *eachAngleEfficiency, *eachPlateEfficiency, *eachTXEfficiency, *eachTYEfficiency;
     TH2D *positionHist;
     TH2D *angleHistWide;
     TH2D *angleHistNarrow;
@@ -42,8 +38,6 @@ private:
     int entries;
     TH1D *hdeltaX,*hdeltaY;
     TH1D *hdeltaTX,*hdeltaTY;
-    int trackID, nseg, W, hitsOnThePlate;
-    double x, y, angle, TX, TY;
     TH2D *deltaX2DHist;
     TH2D *deltaY2DHist;
     TH2D *entries2DHist;
@@ -54,37 +48,6 @@ private:
 public:
     FnuQualityCheck(EdbPVRec *pvr, TString title);
     ~FnuQualityCheck();
-    // methods for position resolution
-    void CalcDeltaXY(double Xcenter, double Ycenter, double bin_width);
-    void FitDeltaXY();
-    void FitDeltaXYAllPlatesTogether();
-    void CalcLSM(double x[], double y[], int N, double &a0, double &a1);
-    void MakePosResGraphHist();
-    void WritePosResGraphHist(TString filename);
-    void PrintPosResGraphHist(TString filename);
-    void WritePosResPar(TString filename);
-    void WriteDeltaXY(TString filename);
-    void PrintDeltaXYHist(TString filename);
-    void CalcMeanDeltaXY(double Xcenter, double Ycenter, double cellSize);
-    int PrintMeanDeltaXYArrowPlot(TString filename);
-    void WriteMeanDeltaXY(TString filename);
-    // angular resolution
-    TTree *MakeHistDeltaTXY(TTree *deltaXY);
-    TTree *FitHistDeltaTXY(TTree *treeHistDetlaTXY);
-    void PrintDeltaTXYHist(TTree *treeHistDetlaTXY, TString filename);
-    void MakeGraphHistAngleResolution(TTree *angleResolutionPar);
-    void PrintGraphHistAngleResolution(TString filename);
-    // methods for efficiency
-    void CalcEfficiency();
-    void SetBinsAngle(int nbins, double bins[]);
-    void SetBinsTXTY(int nbins, double bins[]);
-    void PrintEfficiency(TString filename);
-    void WriteEfficiencyTree(TString filename);
-    void WriteEfficiency(TString filename);
-    // methods for position distribution
-    void MakePositionHist();
-    void PrintPositionHist(TString filename);
-    void WritePositionHist(TString filename);
     // methods for angle distribution
     void MakeAngleHist();
     void PrintAngleHist(TString filename);
@@ -105,5 +68,5 @@ public:
     TTree *CalcSecondDifference(int cellLength);
     void MakeSecondDifferenceHist(TTree *secondDifferenceTree, int cellLength);
     // methods for summary plot
-    void Summarize();
+    void Summarize(double Xcenter, double Ycenter,  double bin_width);
 };

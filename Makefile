@@ -28,7 +28,7 @@ $(TARGET4): $(TARGET4).cpp
 $(TARGET5): $(TARGET5).cpp FnuDivideAlign.o
 	nvcc $^ -Iinclude -I`root-config --incdir` -I$(FEDRA_ROOT)/include -I$(CUDA_ROOT)/include -I$(CUDA_ROOT)/samples/common/inc -L`root-config --libdir` -L$(FEDRA_ROOT)/lib -lCore -lEve -lMathCore -lRint -lThread -lTree -lRIO -lASImage -lGpad -lHist -lGraf -lGraf3d -lcudart -lPhysics -lEdb -lEIO -lEbase -lEdr -lvt -lEmath -lAlignment -lEphys -lDataConversion -o $@ -w
 
-$(TARGET6): $(TARGET6).cpp FnuQualityCheck.o
+$(TARGET6): $(TARGET6).cpp FnuQualityCheck.o FnuResolution.o FnuEfficiency.o FnuPositionDistribution.o
 	g++ $^ -Iinclude -w `root-config --cflags` -I$(FEDRA_ROOT)/include -L$(FEDRA_ROOT)/lib  $(FEDRALIBS) `root-config --libs` -o $@
 
 # can't compile with ROOT6
@@ -42,6 +42,9 @@ $(TARGET8) : $(TARGET8).cpp FnuMomCoord.o
 OBJECT1=FnuMomCoord.o
 OBJECT2=FnuQualityCheck.o
 OBJECT3=FnuDivideAlign.o
+OBJECT4=FnuResolution.o
+OBJECT5=FnuEfficiency.o
+OBJECT6=FnuPositionDistribution.o
 
 $(OBJECT1) : $(MY_TOOL)/FnuMomCoord/src/FnuMomCoord.cpp
 	g++ -c $< -w -I$(MY_TOOL)/FnuMomCoord/include `root-config --cflags` -I$(FEDRA_ROOT)/include -L$(FEDRA_ROOT)/lib  $(FEDRALIBS) `root-config --libs` `root-config --glibs` `root-config --evelibs`
@@ -51,6 +54,15 @@ $(OBJECT2) : src/FnuQualityCheck.cpp
 
 $(OBJECT3) : src/FnuDivideAlign.cu
 	nvcc -c $< -w -Iinclude -I`root-config --incdir` -I$(FEDRA_ROOT)/include -I$(CUDA_ROOT)/include -I$(CUDA_ROOT)/samples/common/inc -L`root-config --libdir` -L$(FEDRA_ROOT)/lib -lCore -lEve -lMathCore -lRint -lThread -lTree -lRIO -lASImage -lGpad -lHist -lGraf -lGraf3d -lcudart -lPhysics -lEdb -lEIO -lEbase -lEdr -lvt -lEmath -lAlignment -lEphys -lDataConversion
+
+$(OBJECT4) : src/FnuResolution.cpp
+	g++ -c $< -w -Iinclude `root-config --cflags` -I$(FEDRA_ROOT)/include -L$(FEDRA_ROOT)/lib  $(FEDRALIBS) `root-config --libs` `root-config --glibs` `root-config --evelibs`
+
+$(OBJECT5) : src/FnuEfficiency.cpp
+	g++ -c $< -w -Iinclude `root-config --cflags` -I$(FEDRA_ROOT)/include -L$(FEDRA_ROOT)/lib  $(FEDRALIBS) `root-config --libs` `root-config --glibs` `root-config --evelibs`
+
+$(OBJECT6) : src/FnuPositionDistribution.cpp
+	g++ -c $< -w -Iinclude `root-config --cflags` -I$(FEDRA_ROOT)/include -L$(FEDRA_ROOT)/lib  $(FEDRALIBS) `root-config --libs` `root-config --glibs` `root-config --evelibs`
 
 clean:
 	$(RM) $(TARGET1)

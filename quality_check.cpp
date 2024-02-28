@@ -24,9 +24,9 @@ int main(int argc, char *argv[])
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
 
-	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=4");
+	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=4");
 	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$%20000==0");
-	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
+	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
 
 	TObjArray *tracks = pvr->GetTracks();
 	int ntrk = tracks->GetEntriesFast();
@@ -37,11 +37,11 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 	FnuQualityCheck qc(pvr, title);
-	qc.CalcDeltaXY(Xcenter, Ycenter, bin_width);
+	// qc.CalcDeltaXY(Xcenter, Ycenter, bin_width);
 	// qc.CalcMeanDeltaXY(Xcenter, Ycenter, 500);
 	// qc.PrintMeanDeltaXYArrowPlot("deltaXY_XYdis/arrow_deltaXY_" + title + ".pdf");
 	// qc.WriteMeanDeltaXY("deltaXY_XYdis/mean_deltaXY_" + title + ".root"); // Writing should be done after all methods that use a related tree.
-	qc.FitDeltaXY();
+	// qc.FitDeltaXY();
 	// TFile *fileDeltaXY = new TFile("/data/Users/kokui/FASERnu/F222/TFD_volumes/btfiltering/deltaXY/tree_zone3_rearranged_006_vert31025_pl013-127.root");
 	// TTree *deltaXY = (TTree*)gDirectory->Get("deltaXY");
 	// TFile *filetest = new TFile("test.root","recreate");
@@ -51,18 +51,18 @@ int main(int argc, char *argv[])
 	// qc.PrintGraphHistAngleResolution("test_angle_resolution.pdf");
 	// angleResolutionPar->Write();
 	// qc.PrintDeltaTXYHist(treeHistDetlaTXY,"test_histDeltaTXY.pdf");
-	qc.MakePosResGraphHist();
+	// qc.MakePosResGraphHist();
 	// TString outputDir = "/data/Users/kokui/FASERnu/F222/zone4/temp/TFD/vert32063_pl053_167_new/reco32_065000_050000/v15/";
 	// qc.PrintPosResGraphHist(outputDir + "pos_res/sigma_par_" + title + ".pdf");
 	// qc.WritePosResGraphHist(outputDir + "pos_res/graph_hist_" + title + ".root");
 	// qc.PrintDeltaXYHist(outputDir + "pos_res/deltaxy_hist_" + title + ".pdf");
 	// qc.WriteDeltaXY(outputDir + "deltaXY/tree_" + title + ".root");
 	// qc.WritePosResPar(outputDir + "pos_res/sigma_par_" + title + ".root");
-	qc.CalcEfficiency();
+	// qc.CalcEfficiency();
 	// qc.PrintEfficiency("efficiency_output/hist_efficiency_" + title + ".pdf");
 	// qc.WriteEfficiency("efficiency_output/efficiency_" + title + ".root");
 	// qc.WriteEfficiencyTree(Form("efficiency_output/effinfo_%s.root", title.Data()));
-	qc.MakePositionHist();
+	// qc.MakePositionHist();
 	// qc.PrintPositionHist("position_distribution_"+title+".pdf");
 	// qc.WritePositionHist("position_distribution_"+title+".root");
 	qc.MakeAngleHist();
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 	// TTree *secondDifferenceTree = (TTree*)gDirectory->Get("secondDifferenceTree");
 	// qc.MakeSecondDifferenceHist(secondDifferenceTree, 32);
 
-	qc.Summarize();
+	qc.Summarize(Xcenter, Ycenter, bin_width);
 
 	auto end = std::chrono::system_clock::now();
 	auto dur = end - start;
