@@ -522,4 +522,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	nplHist->UseCurrentStyle();
 	firstPlateHist->UseCurrentStyle();
 	lastPlateHist->UseCurrentStyle();
+
+	TFile foutTreeHist("tree_hist"+title+".root","recreate");
+	htree->Write();
 }
