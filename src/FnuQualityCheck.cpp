@@ -408,8 +408,9 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	TMultiGraph *mg2 = new TMultiGraph("mg2", "position resolution for each plate;plate;position resolution (#mum)");
 	FnuResolution res(pvr,title);
 	deltaXY = res.CalcDeltaXY(Xcenter, Ycenter, bin_width);
-	htree = res.MakeHistDeltaXY(deltaXY);
-	posResPar = res.FitHistDeltaXY(htree);
+	// htree = res.MakeHistDeltaXY(deltaXY);
+	posResPar = res.FitHistDeltaXY(deltaXY);
+	res.WriteHistDeltaXYWithFit("hist_deltaXY_with_fit.root");
 	res.MakeGraphHistPositionResolution(posResPar);
 	sigmaXGraph=res.GetSigmaXGraph();
 	sigmaYGraph=res.GetSigmaYGraph();
@@ -523,6 +524,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	firstPlateHist->UseCurrentStyle();
 	lastPlateHist->UseCurrentStyle();
 
-	TFile foutTreeHist("tree_hist"+title+".root","recreate");
-	htree->Write();
+	res.PrintHistDeltaXY("hist_deltaXY_" + title + ".pdf");
+	// TFile foutTreeHist("tree_hist_"+title+".root","recreate");
+	// htree->Write();
 }

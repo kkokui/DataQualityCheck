@@ -2,9 +2,10 @@
 
 class FnuResolution
 {
-    private:
+private:
     EdbPVRec *pvr;
     TTree *meanDeltaXY;
+    TTree *treeHistDeltaXY;
     TString title;
     int ntrk;
     int nPID;
@@ -23,22 +24,25 @@ class FnuResolution
     double sigmaX, sigmaY, meanX, meanY;
     double sigmaTX, sigmaTY, meanTX, meanTY;
     int entries;
-    TH1D *hdeltaX,*hdeltaY;
-    TH1D *hdeltaTX,*hdeltaTY;
+    TH1D *hdeltaX, *hdeltaY;
+    TH1D *hdeltaTX, *hdeltaTY;
     TH2D *deltaX2DHist;
     TH2D *deltaY2DHist;
     TH2D *entries2DHist;
-    public:
+
+public:
     FnuResolution(EdbPVRec *pvr, TString title);
     ~FnuResolution();
     TTree *CalcDeltaXY(double Xcenter, double Ycenter, double bin_width);
-    TTree *MakeHistDeltaXY(TTree *deltaXY);
-    TTree *FitHistDeltaXY(TTree *treeHistDeltaXY);
+    // TTree *MakeHistDeltaXY(TTree *deltaXY);
+    // position resolution
+    TTree *FitHistDeltaXY(TTree *DeltaXY);
+    void WriteHistDeltaXYWithFit(TString filename);
     void CalcLSM(double x[], double y[], int N, double &a0, double &a1);
     void MakeGraphHistPositionResolution(TTree *positionResolutionPar);
     void WriteGraphHistPositionResolution(TString filename);
     void PrintGraphHistPositionResolution(TString filename);
-    void PrintHistDeltaXY(TTree *treeHistDeltaXY, TString filename);
+    void PrintHistDeltaXY(TString filename);
     void CalcMeanDeltaXY(TTree *deltaXY, double Xcenter, double Ycenter, double cellSize);
     int PrintMeanDeltaXYArrowPlot(TString filename);
     void WriteMeanDeltaXY(TString filename);
