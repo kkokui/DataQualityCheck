@@ -254,47 +254,6 @@ void FnuResolution::WriteHistDeltaXYWithFit(TString filename)
 }
 
 
-// TTree *FnuResolution::FitHistDeltaXYOld(TTree *treeHistDeltaXY)
-// {
-// 	// Fit histograms of delta x and y.
-// 	// Before using this method, do CalcDeltaXY() to make deltaXY data.
-// 	TTree *positionResolutionPar = new TTree("positionResolutionPar","parameters for position resolution");
-    
-// 	positionResolutionPar->Branch("sigmaX", &sigmaX);
-// 	positionResolutionPar->Branch("sigmaY", &sigmaY);
-// 	positionResolutionPar->Branch("meanX", &meanX);
-// 	positionResolutionPar->Branch("meanY", &meanY);
-// 	positionResolutionPar->Branch("entries", &entries);
-// 	positionResolutionPar->Branch("plate", &plate);
-
-// 	treeHistDeltaXY->SetBranchAddress("hdeltaX",&hdeltaX);
-// 	treeHistDeltaXY->SetBranchAddress("hdeltaY",&hdeltaY);
-	
-// 	TF1 *f = new TF1("gaus", "gaus", -2, 2);
-// 	f->SetParLimits(5, 0, 0.4);
-// 	gStyle->SetOptFit();
-
-// 	for (int ient = 0; ient < treeHistDeltaXY->GetEntriesFast(); ient++)
-// 	{
-// 		treeHistDeltaXY->GetEntry(ient);
-//         hdeltaX->Draw();
-// 		f->SetParameters(1000, 0, 0.2);
-// 		meanX = hdeltaX->GetMean();
-// 		double RMSX = hdeltaX->GetRMS();
-// 		hdeltaX->Fit(f, "Q", "", meanX - RMSX, meanX + RMSX);
-// 		entries = hdeltaX->GetEntries();
-// 		sigmaX = f->GetParameter(2);
-// 		hdeltaY->Draw();
-// 		f->SetParameters(1000, 0, 0.2);
-// 		meanY = hdeltaY->GetMean();
-// 		double RMSY = hdeltaY->GetRMS();
-// 		hdeltaY->Fit(f, "Q", "", meanY - RMSY, meanY + RMSY);
-// 		sigmaY = f->GetParameter(2);
-// 		positionResolutionPar->Fill();
-// 	}
-//     return positionResolutionPar;
-// }
-
 void FnuResolution::CalcLSM(double x[], double y[], int N, double &a0, double &a1)
 {
 	// y = a0 + a1*x
