@@ -4,13 +4,8 @@ class FnuPositionDistribution
 {
 private:
     EdbPVRec *pvr;
-TString title;
+    TString title;
     int ntrk;
-    int nPID;
-    double XYrange;
-    double angleCut;
-    int plMin;
-    int plMax;
     TH2D *positionHist;
 
 public:

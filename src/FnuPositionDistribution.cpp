@@ -5,12 +5,7 @@
 FnuPositionDistribution::FnuPositionDistribution(EdbPVRec *pvr, TString title)
 	: pvr(pvr),
 	  title(title),
-	  nPID(pvr->Npatterns()),
-	  plMin(pvr->GetPattern(0)->Plate()),
-	  plMax(pvr->GetPattern(nPID - 1)->Plate()),
-	  ntrk(pvr->Ntracks()),
-	  angleCut(0.01),
-	  XYrange(8500)
+	  ntrk(pvr->Ntracks())
 {
 }
 
