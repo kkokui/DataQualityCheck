@@ -48,10 +48,6 @@ private:
 public:
     FnuQualityCheck(EdbPVRec *pvr, TString title);
     ~FnuQualityCheck();
-    // methods for angle distribution
-    void MakeAngleHist();
-    void PrintAngleHist(TString filename);
-    void WriteAngleHist(TString filename);
     // methods for nseg
     void MakeNsegHist();
     void PrintNsegHist(TString filename);
