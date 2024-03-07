@@ -1,37 +1,37 @@
 #include "FnuDivideAlign.h"
 #include <EdbDataSet.h>
 double rangeXY = 8500;
-void ApplyAlignBicubic(EdbSegP *s, double Xcenter, double Ycenter, double binWidth)
-{
-	// Apply alignment to segments which passed a divided area
+// void ApplyAlignBicubic(EdbSegP *s, double Xcenter, double Ycenter, double binWidth)
+// {
+// 	// Apply alignment to segments which passed a divided area
 
-	int pid = s->PID();
+// 	int pid = s->PID();
 
-	// get shift value calculated by divide align
-	// double
+// 	// get shift value calculated by divide align
+// 	// double
 
-	// get x and y values of the segment
-	double segmentPositionX = s->X();
-	double segmentPositionY = s->Y();
-	// detect nearest middle position of division
-	int nearestMiddlePointNumberX = (segmentPositionX - (Xcenter - rangeXY) - binWidth / 2) / binWidth;
-	int nearestMiddlePointNumberY = (segmentPositionY - (Ycenter - rangeXY) - binWidth / 2) / binWidth;
-	double nearestMiddlePointPositionX = Xcenter - rangeXY + nearestMiddlePointNumberX * binWidth;
-	double nearestMiddlePointPositionY = Ycenter - rangeXY + nearestMiddlePointNumberY * binWidth;
-	// detect 16 reference values
-	double referencePositionX[4][4];
-	double referencePositionY[4][4];
+// 	// get x and y values of the segment
+// 	double segmentPositionX = s->X();
+// 	double segmentPositionY = s->Y();
+// 	// detect nearest middle position of division
+// 	int nearestMiddlePointNumberX = (segmentPositionX - (Xcenter - rangeXY) - binWidth / 2) / binWidth;
+// 	int nearestMiddlePointNumberY = (segmentPositionY - (Ycenter - rangeXY) - binWidth / 2) / binWidth;
+// 	double nearestMiddlePointPositionX = Xcenter - rangeXY + nearestMiddlePointNumberX * binWidth;
+// 	double nearestMiddlePointPositionY = Ycenter - rangeXY + nearestMiddlePointNumberY * binWidth;
+// 	// detect 16 reference values
+// 	double referencePositionX[4][4];
+// 	double referencePositionY[4][4];
 
-	double referenceShiftX[4][4];
-	double referenceShiftY[4][4];
-	// if(segmentPositionX<nearestBinPositionX)
-	// {
+// 	double referenceShiftX[4][4];
+// 	double referenceShiftY[4][4];
+// 	// if(segmentPositionX<nearestBinPositionX)
+// 	// {
 
-	// 	referenceShiftX[0][0] =
-	// }
-	// calculate alignment parameter
-	// apply alignment
-}
+// 	// 	referenceShiftX[0][0] =
+// 	// }
+// 	// calculate alignment parameter
+// 	// apply alignment
+// }
 double GetWeight(double distance, double sharpFactor)
 {
 	double distanceAbs = fabs(distance);
