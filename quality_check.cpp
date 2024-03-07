@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 	// qc.MakePositionHist();
 	// qc.PrintPositionHist("position_distribution_"+title+".pdf");
 	// qc.WritePositionHist("position_distribution_"+title+".root");
-	qc.MakeAngleHist();
+	// qc.MakeAngleHist();
 	// qc.PrintAngleHist("angle_distribution_"+title+".pdf");
 	// qc.WriteAngleHist("angle_distribution_"+title+".root");
 	qc.MakeNsegHist();

@@ -2,6 +2,7 @@
 #include "FnuResolution.h"
 #include "FnuEfficiency.h"
 #include "FnuPositionDistribution.h"
+#include "FnuAngleDistribution.h"
 
 #include <stdio.h>
 #include <numeric>
@@ -42,85 +43,6 @@ FnuQualityCheck::FnuQualityCheck(EdbPVRec *pvr, TString title)
 
 FnuQualityCheck::~FnuQualityCheck()
 {
-}
-
-void FnuQualityCheck::MakeAngleHist()
-{
-	std::vector<double> angleXVec;
-	std::vector<double> angleYVec;
-	angleXVec.reserve(ntrk);
-	angleYVec.reserve(ntrk);
-	TH2D h2ForAngleCenterCalculation("h2ForAngleCenterCalculation", "angle;tan#theta_{x};tan#theta_{y}", 100, -0.02, 0.02, 100, -0.02, 0.02);
-	// loop over the tracks
-	for (int itrk = 0; itrk < ntrk; itrk++)
-	{
-		EdbTrackP *t = pvr->GetTrack(itrk);
-		int nseg = t->N();
-		// cut is nseg>=5
-		if (nseg < 5)
-			continue;
-		// loop over the segments
-		double X[nseg];
-		double Y[nseg];
-		double Z[nseg];
-		for (int iseg = 0; iseg < nseg; iseg++)
-		{
-			X[iseg] = t->GetSegment(iseg)->X();
-			Y[iseg] = t->GetSegment(iseg)->Y();
-			Z[iseg] = t->GetSegment(iseg)->Z();
-		}
-		double TX, TY, a0;
-		FnuResolution res(pvr,title);
-		res.CalcLSM(Z, X, nseg, a0, TX);
-		res.CalcLSM(Z, Y, nseg, a0, TY);
-		h2ForAngleCenterCalculation.Fill(TX, TY);
-		angleXVec.push_back(TX);
-		angleYVec.push_back(TY);
-	}
-	int locmax, locmay, locmaz;
-	h2ForAngleCenterCalculation.GetMaximumBin(locmax, locmay, locmaz);
-	const double angleCenterX = h2ForAngleCenterCalculation.GetXaxis()->GetBinCenter(locmax);
-	const double angleCenterY = h2ForAngleCenterCalculation.GetYaxis()->GetBinCenter(locmay);
-	double halfRangeNarrow = 0.01;
-	double minXAxisNarrow = angleCenterX - halfRangeNarrow;
-	double maxXAxisNarrow = angleCenterX + halfRangeNarrow;
-	double minYAxisNarrow = angleCenterY - halfRangeNarrow;
-	double maxYAxisNarrow = angleCenterY + halfRangeNarrow;
-	double halfRangeWide = 0.3;
-	double minXAxisWide = angleCenterX - halfRangeWide;
-	double maxXAxisWide = angleCenterX + halfRangeWide;
-	double minYAxisWide = angleCenterY - halfRangeWide;
-	double maxYAxisWide = angleCenterY + halfRangeWide;
-	angleHistNarrow = new TH2D("angleHistNarrow", "angle distribution narrow (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisNarrow, maxXAxisNarrow, 200, minYAxisNarrow, maxYAxisNarrow);
-	angleHistWide = new TH2D("angleHistWide", "angle distribution wide (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisWide, maxXAxisWide, 200, minYAxisWide, maxYAxisWide);
-	for (int itrk = 0; itrk < angleXVec.size(); itrk++)
-	{
-		angleHistNarrow->Fill(angleXVec.at(itrk), angleYVec.at(itrk));
-		angleHistWide->Fill(angleXVec.at(itrk), angleYVec.at(itrk));
-	}
-}
-void FnuQualityCheck::PrintAngleHist(TString filename)
-{
-	TCanvas ctemp;
-	ctemp.Print(filename + "[");
-	ctemp.SetRightMargin(0.15);
-	angleHistNarrow->Draw("colz");
-	angleHistNarrow->SetStats(0);
-	angleHistNarrow->GetYaxis()->SetTitleOffset(1.5);
-	ctemp.Print(filename);
-	ctemp.SetLogz();
-	angleHistWide->Draw("colz");
-	angleHistWide->SetStats(0);
-	angleHistWide->GetYaxis()->SetTitleOffset(1.5);
-	ctemp.Print(filename);
-	ctemp.Print(filename + "]");
-}
-void FnuQualityCheck::WriteAngleHist(TString filename)
-{
-	TFile fout(filename, "recreate");
-	angleHistNarrow->Write();
-	angleHistWide->Write();
-	fout.Close();
 }
 
 void FnuQualityCheck::MakeNsegHist()
@@ -351,9 +273,13 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	// gPad->RedrawAxis();
 	gPad->UseCurrentStyle();
 
+	// angle distribution
+	FnuAngleDistribution angleDistribution(pvr,title);
+	// angleDistribution.CalcAngle();
 	// angle distribution wide
 	c.cd(2);
 	gStyle->SetPadRightMargin(0.25);
+	angleHistWide = angleDistribution.MakeAngleHistWide();
 	TString angleHistWideOriginalTitle = angleHistWide->GetTitle();
 	angleHistWide->SetTitle("angle distribution wide");
 	angleHistWide->Draw("colz");
@@ -369,6 +295,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	// angle distribution narrow
 	c.cd(3);
 	gStyle->SetPadRightMargin(0.25);
+	angleHistNarrow = angleDistribution.MakeAngleHistNarrow();
 	TString angleHistNarrowOriginalTitle = angleHistNarrow->GetTitle();
 	angleHistNarrow->SetTitle("angle distribution narrow");
 	angleHistNarrow->Draw("colz");
@@ -524,7 +451,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	firstPlateHist->UseCurrentStyle();
 	lastPlateHist->UseCurrentStyle();
 
-	res.PrintHistDeltaXY("hist_deltaXY_" + title + ".pdf");
+	// res.PrintHistDeltaXY("hist_deltaXY_" + title + ".pdf");
 	// TFile foutTreeHist("tree_hist_"+title+".root","recreate");
 	// htree->Write();
 }
