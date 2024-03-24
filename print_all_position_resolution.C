@@ -139,7 +139,7 @@ int print_all_position_resolution()
     frResolutionVsRobust->GetYaxis()->SetNdivisions(505);
     TGraphErrors *graphResolutionVsRobust[4];
     // TLegend *legendResolutionVsRobust = new TLegend(0.3, 0.21);
-    TLegend *legendResolutionVsRobust = new TLegend(0.16, 0.7,0.4,0.9);
+    TLegend *legendResolutionVsRobust = new TLegend(0.16, 0.7, 0.4, 0.9);
     for (int iBinWidth = 0; iBinWidth < 4; iBinWidth++)
     {
         graphResolutionVsRobust[iBinWidth] = new TGraphErrors();
@@ -149,7 +149,7 @@ int print_all_position_resolution()
         {
             graphResolutionVsRobust[iBinWidth]->SetPoint(iPoint, iRobust * 0.1, meanResolution[iBinWidth * 5 + iPoint]);
             graphResolutionVsRobust[iBinWidth]->SetPointError(iPoint, 0, meanResolutionError[iBinWidth * 5 + iPoint]);
-                iPoint++;
+            iPoint++;
         }
         graphResolutionVsRobust[iBinWidth]->SetLineColor(iBinWidth + 1);
         graphResolutionVsRobust[iBinWidth]->Draw("l");
@@ -157,6 +157,37 @@ int print_all_position_resolution()
     }
     legendResolutionVsRobust->Draw();
     c3->Print("pos_res/position_resolution_vs_robust.pdf");
+
+    gStyle->SetPadLeftMargin(0.14);
+    gStyle->SetTitleOffset(1.2, "Y");
+    gStyle->SetLabelSize(0.07,"XY");
+    TCanvas *c4 = new TCanvas();
+    TH1F *frResolutionVsBinWidth = gPad->DrawFrame(0., 0.2, 5.5, 0.3, ";division width (mm);position resolution (#mum)");
+    frResolutionVsBinWidth->GetXaxis()->SetNdivisions(210);
+    frResolutionVsBinWidth->GetYaxis()->SetNdivisions(505);
+    TGraphErrors *graphResolutionVsBinWidth[5];
+    // TLegend *legendResolutionVsBinWidth = new TLegend(0.3, 0.21);
+    TLegend *legendResolutionVsBinWidth = new TLegend(0.16, 0.7, 0.4, 0.9);
+    int iRobustFrom0 = 0;
+    for (int iRobust = 10; iRobust >= 6; iRobust--)
+    // for (int iRobust = 7; iRobust >= 7; iRobust--)
+    {
+        graphResolutionVsBinWidth[iRobustFrom0] = new TGraphErrors();
+        graphResolutionVsBinWidth[iRobustFrom0]->SetName(Form("robust factor %.1f", iRobust * 0.1));
+        int iPoint = 0;
+        for (int iBinWidth = 0; iBinWidth < 4; iBinWidth++)
+        {
+            graphResolutionVsBinWidth[iRobustFrom0]->SetPoint(iPoint, binWidthArr[iBinWidth] / 1000, meanResolution[iBinWidth * 5 + iRobustFrom0]);
+            graphResolutionVsBinWidth[iRobustFrom0]->SetPointError(iPoint, 0, meanResolutionError[iBinWidth * 5 + iRobustFrom0]);
+            iPoint++;
+        }
+        graphResolutionVsBinWidth[iRobustFrom0]->SetLineColor(iRobustFrom0 + 1);
+        if(iRobust==7) graphResolutionVsBinWidth[iRobustFrom0]->Draw("l");
+        legendResolutionVsBinWidth->AddEntry(graphResolutionVsBinWidth[iRobustFrom0], Form("robust factor %.1f", iRobust * 0.1), "l");
+        iRobustFrom0++;
+    }
+    // legendResolutionVsBinWidth->Draw();
+    c4->Print("pos_res/position_resolution_vs_binWidth.svg");
 
     return isubpad;
 }
