@@ -571,24 +571,61 @@ void FnuResolution::PrintHistDeltaTXY(TTree *treeHistDeltaTXY,TString filename)
 	// c.Print("pos_res/deltaxy_" + title + ".pdf]");
 	c.Print(filename + "]");
 }
-TTree *FnuResolution::FitHistDeltaTXY(TTree *treeHistDeltaTXY)
+TTree *FnuResolution::FitHistDeltaTXY(TTree *deltaXY)
 {
 	// Create histograms of delta tx and ty and fit them.
+	hdeltaTX = new TH1D("hdeltaTX", "hdeltaTX", 100, -0.02, 0.02);
+	hdeltaTY = new TH1D("hdeltaTY", "hdeltaTY", 100, -0.02, 0.02);
+	TTree *treeHistDeltaTXY = new TTree("treeHistDeltaTXY", "tree for histograms of delta TX and TY");
+	treeHistDeltaTXY->Branch("hdeltaTX", &hdeltaTX);
+	treeHistDeltaTXY->Branch("hdeltaTY", &hdeltaTY);
+	treeHistDeltaTXY->Branch("plate", &plate);
+
 	TTree *angleResolutionPar = new TTree("angleResolutionPar","parameters for angle resolution");
+
 	angleResolutionPar->Branch("sigmaTX", &sigmaTX);
 	angleResolutionPar->Branch("sigmaTY", &sigmaTY);
 	angleResolutionPar->Branch("meanTX", &meanTX);
 	angleResolutionPar->Branch("meanTY", &meanTY);
 	angleResolutionPar->Branch("entries", &entries);
 	angleResolutionPar->Branch("plate", &plate);
-	treeHistDeltaTXY->SetBranchAddress("hdeltaTX",&hdeltaTX);
-	treeHistDeltaTXY->SetBranchAddress("hdeltaTY",&hdeltaTY);
+
+	// treeHistDeltaTXY->SetBranchAddress("hdeltaTX",&hdeltaTX);
+	// treeHistDeltaTXY->SetBranchAddress("hdeltaTY",&hdeltaTY);
+	
 	TF1 *f = new TF1("gaus", "gaus", -0.02, 0.02);
 	// f->SetParLimits(5, 0, 0.4);
 	gStyle->SetOptFit();
-	for (int ient = 0; ient < treeHistDeltaTXY->GetEntriesFast(); ient++)
+
+	TBranch *deltaTXB = deltaXY->GetBranch("deltaTX");
+	TBranch *deltaTYB = deltaXY->GetBranch("deltaTY");
+	TBranch *slopeXB = deltaXY->GetBranch("slopeX");
+	TBranch *slopeYB = deltaXY->GetBranch("slopeY");
+	TBranch *plateB = deltaXY->GetBranch("plate");
+
+	for (int ient = 0; ient < deltaXY->GetEntriesFast(); ient++)
 	{
-		treeHistDeltaTXY->GetEntry(ient);
+		deltaTXB->GetEntry(ient);
+		deltaTYB->GetEntry(ient);
+		slopeXB->GetEntry(ient);
+		slopeYB->GetEntry(ient);
+		plateB->GetEntry(ient);
+
+		const auto slopeXMean = std::accumulate(slopeXV->begin(), slopeXV->end(), 0.0) / slopeXV->size();
+		const auto slopeYMean = std::accumulate(slopeYV->begin(), slopeYV->end(), 0.0) / slopeYV->size();
+		for (int i = 0; i < deltaTXV->size(); i++)
+		{
+			if (fabs(deltaTYV->at(i)) <= 0.02 && fabs(deltaTXV->at(i)) <= 0.02 && fabs(slopeXV->at(i) - slopeXMean) < angleCut && fabs(slopeYV->at(i) - slopeYMean) < angleCut)
+			{
+				hdeltaTX->Fill(deltaTXV->at(i));
+				hdeltaTY->Fill(deltaTYV->at(i));
+			}
+		}
+		hdeltaTX->SetTitle(Form("pl%d %s;deltaX (#mum);", plate, title.Data()));
+		hdeltaTY->SetTitle(Form("pl%d %s;deltaY (#mum);", plate, title.Data()));
+
+		//fit
+		// treeHistDeltaTXY->GetEntry(ient);
 		hdeltaTX->Draw();
 		f->SetParameters(1000, 0, 0.2);
 		meanTX = hdeltaTX->GetMean();
@@ -604,6 +641,10 @@ TTree *FnuResolution::FitHistDeltaTXY(TTree *treeHistDeltaTXY)
 		entries = hdeltaTY->GetEntries();
 		sigmaTY = f->GetParameter(2);
 		angleResolutionPar->Fill();
+
+		treeHistDeltaTXY->Fill();
+		hdeltaTX->Reset();
+		hdeltaTY->Reset();
 	}
 	return angleResolutionPar;
 }
@@ -689,4 +730,13 @@ void FnuResolution::PrintGraphHistAngleResolution(TString filename)
 	c1->Clear();
 	c1->Print(filename);
 	c1->Print(filename + "]");
+}
+TGraph *FnuResolution::GetSigmaTXGraph() const
+{
+    return sigmaTXGraph;
+}
+
+TGraph *FnuResolution::GetSigmaTYGraph() const
+{
+    return sigmaTYGraph;
 }
