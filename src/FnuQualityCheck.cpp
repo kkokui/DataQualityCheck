@@ -47,7 +47,7 @@ FnuQualityCheck::~FnuQualityCheck()
 
 TH1I *FnuQualityCheck::MakePHHist(int nsegMin)
 {
-	TH1I *histPH = new TH1I(Form("histPHNsegMin%d",nsegMin), Form("PH (nseg>=%d)", nsegMin), 20, 13 - 0.5, 32 + 0.5);
+	TH1I *histPH = new TH1I(Form("histPHNsegMin%d", nsegMin), Form("PH (nseg>=%d)", nsegMin), 20, 13 - 0.5, 32 + 0.5);
 	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
 		EdbTrackP *t = pvr->GetTrack(itrk);
@@ -284,8 +284,35 @@ void FnuQualityCheck::MakeSecondDifferenceHist(TTree *secondDifferenceTree, int 
 		// secondDifferenceHist->Reset();
 	}
 }
+
+void FnuQualityCheck::WriteSummaryPlot(TString filename)
+{
+	// write plots of summary plot
+	TFile fout(filename, "recreate");
+	positionHist->Write();
+	angleHistWide->Write();
+	angleHistNarrow->Write();
+	PHHistNsegMin2->Write();
+	PHHistNsegMin4->Write();
+	PHHistMean->Write();
+	efficiencyForEachAngle->Write();
+	efficiencyForEachPlate->Write();
+	sigmaXGraph->Write();
+	sigmaYGraph->Write();
+	sigmaTXGraph->Write();
+	sigmaTYGraph->Write();
+	nsegHist->Write();
+	nplHist->Write();
+	firstPlateHist->Write();
+	lastPlateHist->Write();
+	grErrorsSecondDifferenceMeanX->Write();
+	grErrorsSecondDifferenceMeanY->Write();
+	fout.Close();
+}
+
 void FnuQualityCheck::Summarize(double Xcenter, double Ycenter, double bin_width)
 {
+	//make summary plot and write them
 	gStyle->SetPadLeftMargin(0.14);
 	gStyle->SetPadBottomMargin(0.12);
 	gStyle->SetPadTopMargin(0.07);
@@ -369,14 +396,14 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter, double bin_width
 	gStyle->SetStatW(0.3);
 	gStyle->SetStatX(1);
 	gStyle->SetStatY(1);
-	TH1I *PHHistNsegMin2 = MakePHHist(2);
-	TH1I *PHHistNsegMin4 = MakePHHist(4);
-	TH1D *PHHistMean = MakePHMeanHist(4);
+	PHHistNsegMin2 = MakePHHist(2);
+	PHHistNsegMin4 = MakePHHist(4);
+	PHHistMean = MakePHMeanHist(4);
 	auto PHHistMaxY = PHHistNsegMin2->GetMaximum();
 	auto PHHistminX = PHHistNsegMin2->GetBinCenter(PHHistNsegMin2->FindFirstBinAbove());
 	auto PHHistmaxX = PHHistNsegMin2->GetBinCenter(PHHistNsegMin2->FindLastBinAbove());
 	gPad->DrawFrame(PHHistminX - 0.5, 0, PHHistmaxX + 0.5, PHHistMaxY * 1.1, "PH;PH;N segments or N tracks");
-	
+
 	PHHistNsegMin2->Draw("sames");
 	PHHistNsegMin4->Draw("same");
 	PHHistMean->Draw("same");
@@ -396,7 +423,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter, double bin_width
 	eff.CalcEfficiency();
 	// efficiency for each angle
 	c.cd(5);
-	TEfficiency *efficiencyForEachAngle = eff.GetEfficiencyForEachAngle();
+	efficiencyForEachAngle = eff.GetEfficiencyForEachAngle();
 	TString efficiencyForEachAngleOriginalTitle = efficiencyForEachAngle->GetTitle();
 	efficiencyForEachAngle->SetTitle("efficiency for each angle");
 	gPad->SetRightMargin(0.0);
@@ -404,7 +431,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter, double bin_width
 
 	// efficiency for each plate
 	c.cd(6);
-	TEfficiency *efficiencyForEachPlate = eff.GetEfficiencyForEachPlate();
+	efficiencyForEachPlate = eff.GetEfficiencyForEachPlate();
 	TString efficiencyForEachPlateOriginalTitle = efficiencyForEachPlate->GetTitle();
 	efficiencyForEachPlate->SetTitle("efficiency for each plate");
 	gPad->SetRightMargin(0.0);
@@ -467,6 +494,8 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter, double bin_width
 	gStyle->SetStatW(0.3);
 	gStyle->SetStatX(1);
 	gStyle->SetStatY(1);
+	MakeNsegHist();
+	MakeNplHist();
 	auto nplHistMaxY = nplHist->GetMaximum();
 	auto nsegHistMaxY = nsegHist->GetMaximum();
 	auto maxY = std::max(nplHistMaxY, nsegHistMaxY);
@@ -491,6 +520,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter, double bin_width
 	gPad->SetRightMargin(0);
 	// gStyle->SetOptStat("e");
 	// gStyle->SetStatY(0.87);
+	MakeFirstLastPlateHist();
 	auto firstPlateHistMaxY = firstPlateHist->GetMaximum();
 	auto lastPlateHistMaxY = lastPlateHist->GetMaximum();
 	maxY = std::max(firstPlateHistMaxY, lastPlateHistMaxY);
@@ -528,6 +558,9 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter, double bin_width
 	// gStyle->SetOptStat("e");
 	// gStyle->SetStatY(0.87);
 	TMultiGraph *mgSecondDifference = new TMultiGraph("mgSecondDifference", Form("mean of second difference (cell length %d);plate;mean of second difference (#mum)", cellLengthMaxAvailable));
+
+	grErrorsSecondDifferenceMeanX->SetName("grErrorsSecondDifferenceMeanX");
+	grErrorsSecondDifferenceMeanY->SetName("grErrorsSecondDifferenceMeanY");
 	grErrorsSecondDifferenceMeanX->SetLineColor(kRed);
 	grErrorsSecondDifferenceMeanY->SetLineColor(kBlue);
 	grErrorsSecondDifferenceMeanX->SetMarkerColor(kRed);
@@ -576,4 +609,6 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter, double bin_width
 	// res.PrintHistDeltaXY("hist_deltaXY_" + title + ".pdf");
 	// TFile foutTreeHist("tree_hist_"+title+".root","recreate");
 	// htree->Write();
+
+	WriteSummaryPlot("summary_plot_" + title + ".root");
 }

@@ -25,6 +25,11 @@ private:
     TH2D *positionHist;
     TH2D *angleHistWide;
     TH2D *angleHistNarrow;
+    TH1I *PHHistNsegMin2;
+    TH1I *PHHistNsegMin4;
+    TH1D *PHHistMean;
+    TEfficiency *efficiencyForEachAngle;
+    TEfficiency *efficiencyForEachPlate;
     TH1I *nsegHist;
     TH1I *nplHist;
     TH1I *firstPlateHist;
@@ -37,8 +42,8 @@ private:
     double sigmaX, sigmaY, meanX, meanY;
     double sigmaTX, sigmaTY, meanTX, meanTY;
     int entries;
-    TH1D *hdeltaX,*hdeltaY;
-    TH1D *hdeltaTX,*hdeltaTY;
+    TH1D *hdeltaX, *hdeltaY;
+    TH1D *hdeltaTX, *hdeltaTY;
     TH2D *deltaX2DHist;
     TH2D *deltaY2DHist;
     TH2D *entries2DHist;
@@ -72,6 +77,6 @@ public:
     TTree *CalcSecondDifference(int cellLength);
     void MakeSecondDifferenceHist(TTree *secondDifferenceTree, int cellLength);
     // methods for summary plot
-    void Summarize(double Xcenter, double Ycenter,  double bin_width);
+    void Summarize(double Xcenter, double Ycenter, double bin_width);
     void WriteSummaryPlot(TString filename);
 };
