@@ -42,7 +42,7 @@ TH2D *FnuPositionDistribution::MakePositionHist()
 	double minYAxis = minY - marginY;
 	double maxYAxis = maxY + marginY;
 
-	positionHist = new TH2D("positionHist", "position distribution (" + title + ");x (#mum);y (#mum);Ntracks / cm^{2}", 100, minXAxis, maxXAxis, 100, minYAxis, maxYAxis);
+	positionHist = new TH2D("positionHist", "position distribution (" + title + ");x (#mum);y (#mum);N tracks / cm^{2}", 100, minXAxis, maxXAxis, 100, minYAxis, maxYAxis);
 	double area = (maxXAxis - minXAxis) / 100 / 10000 * (maxYAxis - minYAxis) / 100 / 10000; // in cm^2
 	for (int itrk = 0; itrk < positionXVec.size(); itrk++)
 	{

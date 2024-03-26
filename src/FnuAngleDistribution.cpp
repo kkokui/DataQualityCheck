@@ -77,7 +77,7 @@ TH2D *FnuAngleDistribution::MakeAngleHistWide()
 	double maxXAxisWide = angleCenterX + halfRangeWide;
 	double minYAxisWide = angleCenterY - halfRangeWide;
 	double maxYAxisWide = angleCenterY + halfRangeWide;
-	angleHistWide = new TH2D("angleHistWide", "angle distribution wide (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisWide, maxXAxisWide, 200, minYAxisWide, maxYAxisWide);
+	angleHistWide = new TH2D("angleHistWide", "angle distribution wide (" + title + ");tan#theta_{x};tan#theta_{y};N tracks", 200, minXAxisWide, maxXAxisWide, 200, minYAxisWide, maxYAxisWide);
 	for (int itrk = 0; itrk < angleXVec.size(); itrk++)
 	{
 		angleHistWide->Fill(angleXVec.at(itrk), angleYVec.at(itrk));
@@ -93,7 +93,7 @@ TH2D *FnuAngleDistribution::MakeAngleHistWide(std::vector<double> angleXVec,std:
 	double maxXAxisWide = angleCenterX + halfRangeWide;
 	double minYAxisWide = angleCenterY - halfRangeWide;
 	double maxYAxisWide = angleCenterY + halfRangeWide;
-	angleHistWide = new TH2D("angleHistWide", "angle distribution wide (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisWide, maxXAxisWide, 200, minYAxisWide, maxYAxisWide);
+	angleHistWide = new TH2D("angleHistWide", "angle distribution wide (" + title + ");tan#theta_{x};tan#theta_{y};N tracks", 200, minXAxisWide, maxXAxisWide, 200, minYAxisWide, maxYAxisWide);
 	for (int itrk = 0; itrk < angleXVec.size(); itrk++)
 	{
 		angleHistWide->Fill(angleXVec.at(itrk), angleYVec.at(itrk));
@@ -110,7 +110,7 @@ TH2D *FnuAngleDistribution::MakeAngleHistNarrow()
 	double maxXAxisNarrow = angleCenterX + halfRangeNarrow;
 	double minYAxisNarrow = angleCenterY - halfRangeNarrow;
 	double maxYAxisNarrow = angleCenterY + halfRangeNarrow;
-	angleHistNarrow = new TH2D("angleHistNarrow", "angle distribution narrow (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisNarrow, maxXAxisNarrow, 200, minYAxisNarrow, maxYAxisNarrow);
+	angleHistNarrow = new TH2D("angleHistNarrow", "angle distribution narrow (" + title + ");tan#theta_{x};tan#theta_{y};N tracks", 200, minXAxisNarrow, maxXAxisNarrow, 200, minYAxisNarrow, maxYAxisNarrow);
 	for (int itrk = 0; itrk < angleXVec.size(); itrk++)
 	{
 		angleHistNarrow->Fill(angleXVec.at(itrk), angleYVec.at(itrk));
@@ -126,7 +126,7 @@ TH2D *FnuAngleDistribution::MakeAngleHistNarrow(std::vector<double> angleXVec,st
 	double maxXAxisNarrow = angleCenterX + halfRangeNarrow;
 	double minYAxisNarrow = angleCenterY - halfRangeNarrow;
 	double maxYAxisNarrow = angleCenterY + halfRangeNarrow;
-	angleHistNarrow = new TH2D("angleHistNarrow", "angle distribution narrow (" + title + ");tan#theta_{x};tan#theta_{y};Ntracks", 200, minXAxisNarrow, maxXAxisNarrow, 200, minYAxisNarrow, maxYAxisNarrow);
+	angleHistNarrow = new TH2D("angleHistNarrow", "angle distribution narrow (" + title + ");tan#theta_{x};tan#theta_{y};N tracks", 200, minXAxisNarrow, maxXAxisNarrow, 200, minYAxisNarrow, maxYAxisNarrow);
 	for (int itrk = 0; itrk < angleXVec.size(); itrk++)
 	{
 		angleHistNarrow->Fill(angleXVec.at(itrk), angleYVec.at(itrk));
