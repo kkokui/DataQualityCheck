@@ -51,8 +51,10 @@ public:
 
     // angular resolution
     TTree *MakeHistDeltaTXY(TTree *deltaXY);
-    TTree *FitHistDeltaTXY(TTree *treeHistDetlaTXY);
+    TTree *FitHistDeltaTXY(TTree *deltaXY);
     void PrintHistDeltaTXY(TTree *treeHistDetlaTXY, TString filename);
     void MakeGraphHistAngleResolution(TTree *angleResolutionPar);
     void PrintGraphHistAngleResolution(TString filename);
+    TGraph *GetSigmaTXGraph() const;
+    TGraph *GetSigmaTYGraph() const;
 };

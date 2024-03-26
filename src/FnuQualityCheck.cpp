@@ -45,9 +45,46 @@ FnuQualityCheck::~FnuQualityCheck()
 {
 }
 
+TH1I *FnuQualityCheck::MakePHHist(int nsegMin)
+{
+	TH1I *histPH = new TH1I(Form("histPHNsegMin%d",nsegMin), Form("PH (nseg>=%d)", nsegMin), 20, 13 - 0.5, 32 + 0.5);
+	for (int itrk = 0; itrk < ntrk; itrk++)
+	{
+		EdbTrackP *t = pvr->GetTrack(itrk);
+		int nseg = t->N();
+		if (nseg < nsegMin)
+			continue;
+		for (int iseg = 0; iseg < nseg; iseg++)
+		{
+			int PH = t->GetSegment(iseg)->W();
+			histPH->Fill(PH);
+		}
+	}
+	return histPH;
+}
+TH1D *FnuQualityCheck::MakePHMeanHist(int nsegMin)
+{
+	TH1D *histPHMean = new TH1D("histPHMean", Form("PH mean (nseg>=%d)", nsegMin), 20, 13 - 0.5, 32 + 0.5);
+	for (int itrk = 0; itrk < ntrk; itrk++)
+	{
+		EdbTrackP *t = pvr->GetTrack(itrk);
+		int nseg = t->N();
+		if (nseg < nsegMin)
+			continue;
+		double PHMean = 0;
+		for (int iseg = 0; iseg < nseg; iseg++)
+		{
+			PHMean += t->GetSegment(iseg)->W();
+		}
+		PHMean /= nseg;
+		histPHMean->Fill(PHMean);
+	}
+	return histPHMean;
+}
+
 void FnuQualityCheck::MakeNsegHist()
 {
-	nsegHist = new TH1I("nsegHist", "nseg (" + title + ");nseg;Ntracks", nPID, 0.5, nPID + 0.5);
+	nsegHist = new TH1I("nsegHist", "nseg (" + title + ");nseg;N tracks", nPID, 0.5, nPID + 0.5);
 	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
 		int nseg = pvr->GetTrack(itrk)->N();
@@ -69,7 +106,7 @@ void FnuQualityCheck::WriteNsegHist(TString filename)
 }
 void FnuQualityCheck::MakeNplHist()
 {
-	nplHist = new TH1I("nplHist", "npl (" + title + ");npl;Ntracks", plMax - plMin + 1, 0.5, plMax - plMin + 1.5);
+	nplHist = new TH1I("nplHist", "npl (" + title + ");npl;N tracks", plMax - plMin + 1, 0.5, plMax - plMin + 1.5);
 	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
 		int npl = pvr->GetTrack(itrk)->Npl();
@@ -91,8 +128,8 @@ void FnuQualityCheck::WriteNplHist(TString filename)
 }
 void FnuQualityCheck::MakeFirstLastPlateHist()
 {
-	firstPlateHist = new TH1I("firstPlateHist", "first plate (" + title + ");plate;Ntracks", plMax - plMin + 1, plMin - 0.5, plMax + 0.5);
-	lastPlateHist = new TH1I("lastPlateHist", "last plate (" + title + ");plate;Ntracks", plMax - plMin + 1, plMin - 0.5, plMax + 0.5);
+	firstPlateHist = new TH1I("firstPlateHist", "first plate (" + title + ");plate;N tracks", plMax - plMin + 1, plMin - 0.5, plMax + 0.5);
+	lastPlateHist = new TH1I("lastPlateHist", "last plate (" + title + ");plate;N tracks", plMax - plMin + 1, plMin - 0.5, plMax + 0.5);
 	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
 		EdbTrackP *t = pvr->GetTrack(itrk);
@@ -131,6 +168,7 @@ void FnuQualityCheck::WriteFirstLastPlateHist(TString filename)
 	lastPlateHist->Write();
 	fout.Close();
 }
+
 TTree *FnuQualityCheck::CalcSecondDifference(int cellLength)
 {
 	// Calculate second difference for checking long range position displacement.
@@ -228,11 +266,25 @@ TTree *FnuQualityCheck::CalcSecondDifference(int cellLength)
 }
 void FnuQualityCheck::MakeSecondDifferenceHist(TTree *secondDifferenceTree, int cellLength)
 {
+	grErrorsSecondDifferenceMeanX = new TGraphErrors();
+	grErrorsSecondDifferenceMeanY = new TGraphErrors();
+	grErrorsSecondDifferenceMeanX->SetTitle(Form("mean of second difference in x (cell length %d);plate;mean of second difference (#mum)", cellLength));
+	grErrorsSecondDifferenceMeanY->SetTitle(Form("mean of second difference in y (cell length %d);plate;mean of second difference (#mum)", cellLength));
 	secondDifferenceHist = new TH1D("secondDifferenceHist", Form("second difference (cell length %d);second differecne (#mum);entries", cellLength), 100, -30, 30);
-	secondDifferenceTree->Draw("secondDiffX>>+secondDifferenceHist");
-	secondDifferenceTree->Draw("secondDiffY>>+secondDifferenceHist");
+	int ipoint = 0;
+	for (int ipl = plMin + cellLength * 2; ipl <= plMax; ipl++)
+	{
+		secondDifferenceTree->Draw("secondDiffX>>secondDifferenceHist", Form("plate==%d", ipl));
+		grErrorsSecondDifferenceMeanX->SetPoint(ipoint, ipl, secondDifferenceHist->GetMean());
+		grErrorsSecondDifferenceMeanX->SetPointError(ipoint, 0, secondDifferenceHist->GetMeanError());
+		secondDifferenceTree->Draw("secondDiffY>>secondDifferenceHist", Form("plate==%d", ipl));
+		grErrorsSecondDifferenceMeanY->SetPoint(ipoint, ipl, secondDifferenceHist->GetMean());
+		grErrorsSecondDifferenceMeanY->SetPointError(ipoint, 0, secondDifferenceHist->GetMeanError());
+		ipoint++;
+		// secondDifferenceHist->Reset();
+	}
 }
-void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_width)
+void FnuQualityCheck::Summarize(double Xcenter, double Ycenter, double bin_width)
 {
 	gStyle->SetPadLeftMargin(0.14);
 	gStyle->SetPadBottomMargin(0.12);
@@ -255,7 +307,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	gStyle->SetStatW(0.25);
 	gStyle->SetStatX(1);
 	gStyle->SetStatY(1);
-	FnuPositionDistribution pos(pvr,title);
+	FnuPositionDistribution pos(pvr, title);
 	positionHist = pos.MakePositionHist();
 	TString positionHistOriginalTitle = positionHist->GetTitle();
 	positionHist->SetTitle("position distribution");
@@ -274,7 +326,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	gPad->UseCurrentStyle();
 
 	// angle distribution
-	FnuAngleDistribution angleDistribution(pvr,title);
+	FnuAngleDistribution angleDistribution(pvr, title);
 	// angleDistribution.CalcAngle();
 	// angle distribution wide
 	c.cd(2);
@@ -308,11 +360,42 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	gPad->UseCurrentStyle();
 	gPad->SetLogz();
 
+	// pulse height
+	c.cd(4);
+	gStyle->SetPadRightMargin(0.0);
+	gStyle->SetPadTopMargin(0.13);
+	gStyle->SetOptStat("e");
+	gStyle->SetStatH(0.27);
+	gStyle->SetStatW(0.3);
+	gStyle->SetStatX(1);
+	gStyle->SetStatY(1);
+	TH1I *PHHistNsegMin2 = MakePHHist(2);
+	TH1I *PHHistNsegMin4 = MakePHHist(4);
+	TH1D *PHHistMean = MakePHMeanHist(4);
+	auto PHHistMaxY = PHHistNsegMin2->GetMaximum();
+	auto PHHistminX = PHHistNsegMin2->GetBinCenter(PHHistNsegMin2->FindFirstBinAbove());
+	auto PHHistmaxX = PHHistNsegMin2->GetBinCenter(PHHistNsegMin2->FindLastBinAbove());
+	gPad->DrawFrame(PHHistminX - 0.5, 0, PHHistmaxX + 0.5, PHHistMaxY * 1.1, "PH;PH;N segments or N tracks");
+	
+	PHHistNsegMin2->Draw("sames");
+	PHHistNsegMin4->Draw("same");
+	PHHistMean->Draw("same");
+	gPad->UseCurrentStyle();
+	gPad->Update();
+	PHHistNsegMin2->SetLineColor(kBlack);
+	PHHistMean->SetFillColor(kYellow);
+	TLegend *legPH = new TLegend(0.3, 0.87, 1.0, 0.93);
+	legPH->AddEntry(PHHistNsegMin2, "nseg#geq2", "l");
+	legPH->AddEntry(PHHistNsegMin4, "nseg#geq4", "l");
+	legPH->AddEntry(PHHistMean, "mean, nseg#geq4", "lf");
+	legPH->SetNColumns(3);
+	legPH->Draw();
+
 	// efficiency
-	FnuEfficiency eff(pvr,title);
+	FnuEfficiency eff(pvr, title);
 	eff.CalcEfficiency();
 	// efficiency for each angle
-	c.cd(4);
+	c.cd(5);
 	TEfficiency *efficiencyForEachAngle = eff.GetEfficiencyForEachAngle();
 	TString efficiencyForEachAngleOriginalTitle = efficiencyForEachAngle->GetTitle();
 	efficiencyForEachAngle->SetTitle("efficiency for each angle");
@@ -320,7 +403,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	efficiencyForEachAngle->Draw();
 
 	// efficiency for each plate
-	c.cd(5);
+	c.cd(6);
 	TEfficiency *efficiencyForEachPlate = eff.GetEfficiencyForEachPlate();
 	TString efficiencyForEachPlateOriginalTitle = efficiencyForEachPlate->GetTitle();
 	efficiencyForEachPlate->SetTitle("efficiency for each plate");
@@ -328,37 +411,60 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	efficiencyForEachPlate->Draw();
 
 	// position resolution in x and y for each plate
-	c.cd(6);
+	c.cd(7);
 	c.SetGridx(1);
 	gPad->SetRightMargin(0.0);
 	gPad->SetTopMargin(0.13);
 	TMultiGraph *mg2 = new TMultiGraph("mg2", "position resolution for each plate;plate;position resolution (#mum)");
-	FnuResolution res(pvr,title);
+	FnuResolution res(pvr, title);
 	deltaXY = res.CalcDeltaXY(Xcenter, Ycenter, bin_width);
 	// htree = res.MakeHistDeltaXY(deltaXY);
 	posResPar = res.FitHistDeltaXY(deltaXY);
-	res.WriteHistDeltaXYWithFit("hist_deltaXY_with_fit.root");
+	// res.WriteHistDeltaXYWithFit("hist_deltaXY_with_fit.root");
 	res.MakeGraphHistPositionResolution(posResPar);
-	sigmaXGraph=res.GetSigmaXGraph();
-	sigmaYGraph=res.GetSigmaYGraph();
+	sigmaXGraph = res.GetSigmaXGraph();
+	sigmaYGraph = res.GetSigmaYGraph();
 	sigmaXGraph->SetMarkerSize(0.5);
 	sigmaYGraph->SetMarkerSize(0.5);
 	mg2->Add(sigmaXGraph);
 	mg2->Add(sigmaYGraph);
 	mg2->Draw("ap");
 	TLegend *leg2 = new TLegend(0.3, 0.87, 1.0, 0.93);
-	leg2->AddEntry(sigmaXGraph, "resolutionX", "p");
-	leg2->AddEntry(sigmaYGraph, "resolutionY", "p");
+	leg2->AddEntry(sigmaXGraph, "x direction", "p");
+	leg2->AddEntry(sigmaYGraph, "y direction", "p");
 	leg2->SetNColumns(2);
 	leg2->Draw();
 
+	// angular resolution in x and y for each plate
+	c.cd(8);
+	c.SetGridx(1);
+	gPad->SetRightMargin(0.0);
+	gPad->SetTopMargin(0.13);
+	TMultiGraph *mgAngleResolution = new TMultiGraph("mgAngleResolution", "angular resolution for each plate;plate;angular resolution (rad)");
+
+	angResPar = res.FitHistDeltaTXY(deltaXY);
+	// res.WriteHistDeltaTXYWithFit("hist_deltaTXY_with_fit.root");
+	res.MakeGraphHistAngleResolution(angResPar);
+	sigmaTXGraph = res.GetSigmaTXGraph();
+	sigmaTYGraph = res.GetSigmaTYGraph();
+	sigmaTXGraph->SetMarkerSize(0.5);
+	sigmaTYGraph->SetMarkerSize(0.5);
+	mgAngleResolution->Add(sigmaTXGraph);
+	mgAngleResolution->Add(sigmaTYGraph);
+	mgAngleResolution->Draw("ap");
+	TLegend *legAngleResolution = new TLegend(0.3, 0.87, 1.0, 0.93);
+	legAngleResolution->AddEntry(sigmaTXGraph, "x direction", "p");
+	legAngleResolution->AddEntry(sigmaTYGraph, "y direction", "p");
+	legAngleResolution->SetNColumns(2);
+	legAngleResolution->Draw();
+
 	// npl and nseg
-	c.cd(7);
+	c.cd(9);
 	gStyle->SetPadRightMargin(0.0);
 	gStyle->SetPadTopMargin(0.13);
 	gStyle->SetOptStat("e");
 	gStyle->SetStatH(0.09);
-	gStyle->SetStatW(0.2);
+	gStyle->SetStatW(0.3);
 	gStyle->SetStatX(1);
 	gStyle->SetStatY(1);
 	auto nplHistMaxY = nplHist->GetMaximum();
@@ -366,7 +472,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	auto maxY = std::max(nplHistMaxY, nsegHistMaxY);
 	auto minX = nplHist->GetBinCenter(nplHist->FindFirstBinAbove());
 	auto maxX = nplHist->GetBinCenter(nplHist->FindLastBinAbove());
-	gPad->DrawFrame(minX - (maxX - minX) * 0.05, 0.7, maxX + (maxX - minX) * 0.05, maxY * 2, "nseg and npl;nseg or npl;# tracks");
+	gPad->DrawFrame(minX - (maxX - minX) * 0.05, 0.7, maxX + (maxX - minX) * 0.05, maxY * 2, "nseg and npl;nseg or npl;N tracks");
 	nplHist->Draw("sames");
 	nsegHist->Draw("same");
 	gPad->UseCurrentStyle();
@@ -380,7 +486,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	gPad->SetLogy();
 
 	// first and last plate
-	c.cd(8);
+	c.cd(10);
 	gPad->SetTopMargin(0.13);
 	gPad->SetRightMargin(0);
 	// gStyle->SetOptStat("e");
@@ -388,7 +494,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	auto firstPlateHistMaxY = firstPlateHist->GetMaximum();
 	auto lastPlateHistMaxY = lastPlateHist->GetMaximum();
 	maxY = std::max(firstPlateHistMaxY, lastPlateHistMaxY);
-	gPad->DrawFrame(plMin - (plMax - plMin) * 0.05, 0.7, plMax + (plMax - plMin) * 0.05, maxY * 2, "start and end plate;plate;# tracks");
+	gPad->DrawFrame(plMin - (plMax - plMin) * 0.05, 0.7, plMax + (plMax - plMin) * 0.05, maxY * 2, "start and end plate;plate;N tracks");
 	firstPlateHist->Draw("sames");
 	lastPlateHist->Draw("same");
 	TLegend *legFirstLast = new TLegend(0.3, 0.87, 1.0, 0.93);
@@ -401,7 +507,7 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	gPad->SetLogy();
 
 	// second difference
-	c.cd(9);
+	c.cd(11);
 	int cellLengthMaxAvailable = (nPID - 1) / 2;
 	if (cellLengthMaxAvailable >= 32)
 		cellLengthMaxAvailable = 32;
@@ -421,14 +527,30 @@ void FnuQualityCheck::Summarize(double Xcenter, double Ycenter,  double bin_widt
 	gPad->SetRightMargin(0);
 	// gStyle->SetOptStat("e");
 	// gStyle->SetStatY(0.87);
-	secondDifferenceHist->Draw();
+	TMultiGraph *mgSecondDifference = new TMultiGraph("mgSecondDifference", Form("mean of second difference (cell length %d);plate;mean of second difference (#mum)", cellLengthMaxAvailable));
+	grErrorsSecondDifferenceMeanX->SetLineColor(kRed);
+	grErrorsSecondDifferenceMeanY->SetLineColor(kBlue);
+	grErrorsSecondDifferenceMeanX->SetMarkerColor(kRed);
+	grErrorsSecondDifferenceMeanY->SetMarkerColor(kBlue);
+	grErrorsSecondDifferenceMeanX->SetMarkerStyle(20);
+	grErrorsSecondDifferenceMeanY->SetMarkerStyle(20);
+	grErrorsSecondDifferenceMeanX->SetMarkerSize(0.5);
+	grErrorsSecondDifferenceMeanY->SetMarkerSize(0.5);
+	mgSecondDifference->Add(grErrorsSecondDifferenceMeanX);
+	mgSecondDifference->Add(grErrorsSecondDifferenceMeanY);
+	mgSecondDifference->Draw("ap");
+	TLegend *legSecondDifference = new TLegend(0.3, 0.87, 1.0, 0.93);
+	legSecondDifference->AddEntry(grErrorsSecondDifferenceMeanX, "x direction", "p");
+	legSecondDifference->AddEntry(grErrorsSecondDifferenceMeanY, "y direction", "p");
+	legSecondDifference->SetNColumns(2);
+	legSecondDifference->Draw();
 	gPad->UseCurrentStyle();
 
-	c.cd(10);
+	c.cd(12);
 	TText tx;
 	tx.DrawTextNDC(0.1, 0.9, title);
 
-	c.Print("summary_plot_"+title+".pdf");
+	c.Print("summary_plot_" + title + ".pdf");
 
 	// set original title
 	positionHist->SetTitle(positionHistOriginalTitle);

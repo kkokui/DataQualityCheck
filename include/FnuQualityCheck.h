@@ -8,6 +8,7 @@ private:
     TFile *file;
     TTree *deltaXY;
     TTree *posResPar;
+    TTree *angResPar;
     TTree *htree;
     TTree *meanDeltaXY;
     TString title;
@@ -44,10 +45,17 @@ private:
     double *secondDifferenceX, *secondDifferenceY, *slopeX, *slopeY;
     int entriesParPlate;
     TH1D *secondDifferenceHist;
+    TGraphErrors *grErrorsSecondDifferenceMeanX;
+    TGraphErrors *grErrorsSecondDifferenceMeanY;
 
 public:
     FnuQualityCheck(EdbPVRec *pvr, TString title);
     ~FnuQualityCheck();
+
+    // methods for PH
+    TH1I *MakePHHist(int nsegMin);
+    TH1D *MakePHMeanHist(int nsegMin);
+
     // methods for nseg
     void MakeNsegHist();
     void PrintNsegHist(TString filename);
@@ -65,4 +73,5 @@ public:
     void MakeSecondDifferenceHist(TTree *secondDifferenceTree, int cellLength);
     // methods for summary plot
     void Summarize(double Xcenter, double Ycenter,  double bin_width);
+    void WriteSummaryPlot(TString filename);
 };
