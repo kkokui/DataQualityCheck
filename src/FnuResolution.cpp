@@ -30,6 +30,8 @@ FnuResolution::~FnuResolution()
 
 TTree *FnuResolution::CalcDeltaXY(double Xcenter, double Ycenter, double bin_width)
 {
+	// calculate position and anglular displacement
+
 	TTree *deltaXY = new TTree("deltaXY", "deltaXY");
 	deltaXY->Branch("deltaX", &deltaXV);
 	deltaXY->Branch("deltaY", &deltaYV);
@@ -188,8 +190,6 @@ TTree *FnuResolution::FitHistDeltaXY(TTree *deltaXY)
 	f->SetParLimits(5, 0, 0.4);
 	gStyle->SetOptFit();
 
-	// int plMin = deltaXY->GetMinimum("pl");
-	// int plMax = deltaXY->GetMaximum("pl");
 	TBranch *deltaXB = deltaXY->GetBranch("deltaX");
 	TBranch *deltaYB = deltaXY->GetBranch("deltaY");
 	TBranch *slopeXB = deltaXY->GetBranch("slopeX");
@@ -237,12 +237,13 @@ TTree *FnuResolution::FitHistDeltaXY(TTree *deltaXY)
 		hdeltaY->Reset();
 	}
 	return positionResolutionPar;
-	// return treeHistDeltaXY;
 
 }
 
 void FnuResolution::WriteHistDeltaXYWithFit(TString filename)
 {
+	// Write the histograms with the fitted line to the file.
+
 	TFile fout(filename,"recreate");
 	for (int ient = 0; ient < treeHistDeltaXY->GetEntriesFast(); ient++)
 	{
@@ -256,6 +257,7 @@ void FnuResolution::WriteHistDeltaXYWithFit(TString filename)
 
 void FnuResolution::CalcLSM(double x[], double y[], int N, double &a0, double &a1)
 {
+	//calculate linear fitting with the least square method.
 	// y = a0 + a1*x
 	int i;
 	double A00 = 0, A01 = 0, A02 = 0, A11 = 0, A12 = 0;
@@ -314,6 +316,7 @@ void FnuResolution::MakeGraphHistPositionResolution(TTree *positionResolutionPar
 void FnuResolution::WriteGraphHistPositionResolution(TString filename)
 {
 	// write graphs and histograms about position resolution to file.
+
 	TFile fout(filename, "recreate");
 	meanXGraph->Write();
 	meanYGraph->Write();
@@ -325,8 +328,8 @@ void FnuResolution::WriteGraphHistPositionResolution(TString filename)
 }
 void FnuResolution::PrintGraphHistPositionResolution(TString filename)
 {
-	// int plMax = posResPar->GetMaximum("pl");
-	// int plMin = posResPar->GetMinimum("pl");
+	// print graphs and histograms about position resolution to file
+
 	TCanvas *c1 = new TCanvas();
 	c1->Print(filename + "[");
 
@@ -369,21 +372,18 @@ void FnuResolution::PrintGraphHistPositionResolution(TString filename)
 }
 void FnuResolution::PrintHistDeltaXY(TString filename)
 {
+	// print the histograms to the file.
 	TCanvas c;
-	// c.Print("pos_res/deltaxy_" + title + ".pdf[");
 	c.Print(filename + "[");
 	for (int ient = 0; ient < treeHistDeltaXY->GetEntriesFast(); ient++)
 	{
 		treeHistDeltaXY->GetEntry(ient);
 		hdeltaX->Draw();
-		// c.Print("pos_res/deltaxy_" + title + ".pdf");
 		c.Print(filename);
 		hdeltaY->Draw();
-		// c.Print("pos_res/deltaxy_" + title + ".pdf");
 		c.Print(filename);
 		printf("Histograms for plate %d have been printed\n", plate);
 	}
-	// c.Print("pos_res/deltaxy_" + title + ".pdf]");
 	c.Print(filename + "]");
 }
 void FnuResolution::CalcMeanDeltaXY(TTree *deltaXY, double Xcenter, double Ycenter, double cellSize)
@@ -441,6 +441,8 @@ void FnuResolution::CalcMeanDeltaXY(TTree *deltaXY, double Xcenter, double Ycent
 
 void FnuResolution::WriteMeanDeltaXY(TString filename)
 {
+	// write the tree of the mean of the deltaX or deltaY
+
 	TFile fout(filename, "recreate");
 	meanDeltaXY->Write();
 	fout.Close();
@@ -448,6 +450,8 @@ void FnuResolution::WriteMeanDeltaXY(TString filename)
 
 int FnuResolution::PrintMeanDeltaXYArrowPlot(TString filename)
 {
+	//print the arrow plot showing the positional dependence of the position displacement.
+
 	int nent = meanDeltaXY->GetEntriesFast();
 	if (0 == nent)
 	{
@@ -507,73 +511,27 @@ TGraph *FnuResolution::GetSigmaYGraph() const
     return sigmaYGraph;
 }
 
-TTree *FnuResolution::MakeHistDeltaTXY(TTree *deltaXY)
-{
-	hdeltaTX = new TH1D("hdeltaTX", "hdeltaTX", 100, -0.02, 0.02);
-	hdeltaTY = new TH1D("hdeltaTY", "hdeltaTY", 100, -0.02, 0.02);
-	TTree *treeHistDeltaTXY = new TTree("treeHistDeltaTXY","tree for histograms of delta TX and TY");
-	treeHistDeltaTXY->Branch("hdeltaTX", &hdeltaTX);
-	treeHistDeltaTXY->Branch("hdeltaTY", &hdeltaTY);
-	treeHistDeltaTXY->Branch("plate", &plate);
-
-	deltaXY->SetBranchAddress("deltaTX",&deltaTXV);
-	deltaXY->SetBranchAddress("deltaTY",&deltaTYV);
-	deltaXY->SetBranchAddress("slopeX",&slopeXV);
-	deltaXY->SetBranchAddress("slopeY",&slopeYV);
-	deltaXY->SetBranchAddress("plate",&plate);
-	TBranch *deltaTXB = deltaXY->GetBranch("deltaTX");
-	TBranch *deltaTYB = deltaXY->GetBranch("deltaTY");
-	TBranch *slopeXB = deltaXY->GetBranch("slopeX");
-	TBranch *slopeYB = deltaXY->GetBranch("slopeY");
-	TBranch *plateB = deltaXY->GetBranch("plate");
-
-	for (int ient = 0; ient < deltaXY->GetEntriesFast(); ient++)
-	{
-		deltaTXB->GetEntry(ient);
-		deltaTYB->GetEntry(ient);
-		slopeXB->GetEntry(ient);
-		slopeYB->GetEntry(ient);
-		plateB->GetEntry(ient);
-		const auto slopeXMean = std::accumulate(slopeXV->begin(), slopeXV->end(), 0.0) / slopeXV->size();
-		const auto slopeYMean = std::accumulate(slopeYV->begin(), slopeYV->end(), 0.0) / slopeYV->size();
-		for (int i = 0; i < deltaTXV->size(); i++)
-		{
-			if (fabs(deltaTYV->at(i)) <= 0.02 && fabs(deltaTXV->at(i)) <= 0.02 && fabs(slopeXV->at(i) - slopeXMean) < angleCut && fabs(slopeYV->at(i) - slopeYMean) < angleCut)
-			{
-				hdeltaTX->Fill(deltaTXV->at(i));
-				hdeltaTY->Fill(deltaTYV->at(i));
-			}
-		}
-		hdeltaTX->SetTitle(Form("pl%d %s;deltaX (#mum);", plate, title.Data()));
-		hdeltaTY->SetTitle(Form("pl%d %s;deltaY (#mum);", plate, title.Data()));
-		treeHistDeltaTXY->Fill();
-		hdeltaTX->Reset();
-		hdeltaTY->Reset();
-	}
-	return treeHistDeltaTXY;
-}
 void FnuResolution::PrintHistDeltaTXY(TTree *treeHistDeltaTXY,TString filename)
 {
+	// print the histograms of deltaTX and deltaTY to the file.
+
 	TCanvas c;
-	// c.Print("pos_res/deltaxy_" + title + ".pdf[");
 	c.Print(filename + "[");
 	for (int ient = 0; ient < treeHistDeltaTXY->GetEntriesFast(); ient++)
 	{
 		treeHistDeltaTXY->GetEntry(ient);
 		hdeltaTX->Draw();
-		// c.Print("pos_res/deltaxy_" + title + ".pdf");
 		c.Print(filename);
 		hdeltaTY->Draw();
-		// c.Print("pos_res/deltaxy_" + title + ".pdf");
 		c.Print(filename);
 		// printf("Histograms for plate %d have been printed\n", plate);
 	}
-	// c.Print("pos_res/deltaxy_" + title + ".pdf]");
 	c.Print(filename + "]");
 }
 TTree *FnuResolution::FitHistDeltaTXY(TTree *deltaXY)
 {
 	// Create histograms of delta tx and ty and fit them.
+
 	hdeltaTX = new TH1D("hdeltaTX", "hdeltaTX", 100, -0.02, 0.02);
 	hdeltaTY = new TH1D("hdeltaTY", "hdeltaTY", 100, -0.02, 0.02);
 	TTree *treeHistDeltaTXY = new TTree("treeHistDeltaTXY", "tree for histograms of delta TX and TY");
@@ -589,9 +547,6 @@ TTree *FnuResolution::FitHistDeltaTXY(TTree *deltaXY)
 	angleResolutionPar->Branch("meanTY", &meanTY);
 	angleResolutionPar->Branch("entries", &entries);
 	angleResolutionPar->Branch("plate", &plate);
-
-	// treeHistDeltaTXY->SetBranchAddress("hdeltaTX",&hdeltaTX);
-	// treeHistDeltaTXY->SetBranchAddress("hdeltaTY",&hdeltaTY);
 	
 	TF1 *f = new TF1("gaus", "gaus", -0.02, 0.02);
 	// f->SetParLimits(5, 0, 0.4);
@@ -625,7 +580,6 @@ TTree *FnuResolution::FitHistDeltaTXY(TTree *deltaXY)
 		hdeltaTY->SetTitle(Form("pl%d %s;deltaY (#mum);", plate, title.Data()));
 
 		//fit
-		// treeHistDeltaTXY->GetEntry(ient);
 		hdeltaTX->Draw();
 		f->SetParameters(1000, 0, 0.2);
 		meanTX = hdeltaTX->GetMean();
@@ -689,8 +643,8 @@ void FnuResolution::MakeGraphHistAngleResolution(TTree *angleResolutionPar)
 }
 void FnuResolution::PrintGraphHistAngleResolution(TString filename)
 {
-	// int plMax = posResPar->GetMaximum("pl");
-	// int plMin = posResPar->GetMinimum("pl");
+	// print graphs and histograms about angle resolution.
+
 	TCanvas *c1 = new TCanvas();
 	c1->Print(filename + "[");
 

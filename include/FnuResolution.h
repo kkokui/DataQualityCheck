@@ -34,7 +34,7 @@ public:
     FnuResolution(EdbPVRec *pvr, TString title);
     ~FnuResolution();
     TTree *CalcDeltaXY(double Xcenter, double Ycenter, double bin_width);
-    // TTree *MakeHistDeltaXY(TTree *deltaXY);
+    
     // position resolution
     TTree *FitHistDeltaXY(TTree *DeltaXY);
     void WriteHistDeltaXYWithFit(TString filename);
@@ -50,7 +50,6 @@ public:
     TGraph *GetSigmaYGraph() const;
 
     // angular resolution
-    TTree *MakeHistDeltaTXY(TTree *deltaXY);
     TTree *FitHistDeltaTXY(TTree *deltaXY);
     void PrintHistDeltaTXY(TTree *treeHistDetlaTXY, TString filename);
     void MakeGraphHistAngleResolution(TTree *angleResolutionPar);
