@@ -6,6 +6,7 @@
 #include <TStyle.h>
 void fill_hist(TH3D *h3Efficiency, int zone, double bottomLeftX, double bottomLeftY)
 {
+    // fill efficiencies for each plate and position into 3D histogram
     FILE *fp = fopen(Form("efficiency_zone%d.txt", zone), "rt");
     char buf[256];
     for (; fgets(buf, sizeof(buf), fp);)
@@ -18,6 +19,7 @@ void fill_hist(TH3D *h3Efficiency, int zone, double bottomLeftX, double bottomLe
         sscanf(buf, "%d %d %lf %lf %lf", &plate, &reco, &x, &y, &efficiency);
         double areaCenterX = (reco - 1) % 9 * 15000 + 5000;
         double areaCenterY = (reco - 1) / 9 * 15000 + 5000;
+        // remove the edge part since it does not have enough bin width.
         if (x == areaCenterX - 8500)
             continue;
         if (x == areaCenterX + 8500)
@@ -30,7 +32,8 @@ void fill_hist(TH3D *h3Efficiency, int zone, double bottomLeftX, double bottomLe
         int bin = h3Efficiency->FindBin(x + bottomLeftX, y + bottomLeftY, plate);
         if (efficiency != 0)
         {
-            h3Efficiency->SetBinContent(bin, efficiency);
+            h3Efficiency->SetBinContent(bin, efficiency); //update the efficiency of the bin.
+            // If it is updated by edge part, the efficiency may become low, so updating is not good for combining multiple zones.
         }
     }
 }
@@ -40,7 +43,7 @@ void read_all_efficiency_text()
     const int plMin = 10; // for zones 3 or 4
     const int plMax = 348; // for zones 3 or 4
     int npl = plMax - plMin + 1;
-    const double binWidth = 1000;
+    const double binWidth = 1000; //this should be the same as the bin width used in efficiency_plate_pos...
 
     // const double minX = -4000; //for multiple zones (3 and 4)
     // const double maxX = 254000; //for multiple zones (3 and 4)
@@ -61,6 +64,7 @@ void read_all_efficiency_text()
 
     fill_hist(h3Efficiency, 4, 0, 0);
 
+    // make 2D histograms from the 3D histogram
     TProfile2D *prof2EfficiencyMap = new TProfile2D("prof2EfficiencyMap", "efficiency;x (#mum);y (#mum);efficiency", nBinsX, minX, maxX, nBinsY, minY, maxY, "");
     TProfile2D *prof2EfficiencyPlateVsX = new TProfile2D("prof2EfficiencyPlateVsX", "efficiency for each plate and x;plate;x (#mum);efficiency", npl, plMin - 0.5, plMax + 0.5, nBinsX, minX, maxX, "");
     TProfile2D *prof2EfficiencyPlateVsY = new TProfile2D("prof2EfficiencyPlateVsY", "efficiency for each plate and y;plate;y (#mum);efficiency", npl, plMin - 0.5, plMax + 0.5, nBinsY, minY, maxY, "");
@@ -82,6 +86,7 @@ void read_all_efficiency_text()
     }
     gStyle->SetPadRightMargin(0.15);
     TCanvas *c0 = new TCanvas("c0","efficiency map");
+    // 2D map of the efficiency 
     prof2EfficiencyMap->Draw("colz");
     prof2EfficiencyMap->SetStats(0);
     prof2EfficiencyMap->SetMinimum(0.0001);
@@ -90,11 +95,13 @@ void read_all_efficiency_text()
     TCanvas *c1 = new TCanvas("c1", "efficiency for each plate and x (or y)", 1200, 500);
     c1->Divide(2);
     c1->cd(1);
+    // 2D histogram of the efficiency for each plate and x
     prof2EfficiencyPlateVsX->Draw("colz");
     prof2EfficiencyPlateVsX->SetStats(0);
     prof2EfficiencyPlateVsX->SetMinimum(0.0001);
     prof2EfficiencyPlateVsX->SetMaximum(1);
     c1->cd(2);
+    // 2D histogram of the efficiency for each plate and y
     prof2EfficiencyPlateVsY->Draw("colz");
     prof2EfficiencyPlateVsY->SetStats(0);
     prof2EfficiencyPlateVsY->SetMinimum(0.0001);

@@ -243,6 +243,7 @@ TTree *FnuResolution::FitHistDeltaXY(TTree *deltaXY)
 void FnuResolution::WriteHistDeltaXYWithFit(TString filename)
 {
 	// Write the histograms with the fitted line to the file.
+	// Do FitHistDeltaXY(TTree *deltaXY) before this method.
 
 	TFile fout(filename,"recreate");
 	for (int ient = 0; ient < treeHistDeltaXY->GetEntriesFast(); ient++)

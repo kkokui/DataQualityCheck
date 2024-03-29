@@ -100,7 +100,6 @@ void fit_deltaXY(TTree *tree, double division_center_x, double division_center_y
         TH1D *hx_fit = (TH1D *)gDirectory->Get("hx_fit");
         fit_range = hx_fit->GetRMS();
         fit_center = hx_fit->GetMean();
-        // fit_center = 0;
         hx_fit->Fit(fit_func_x, "QB", "", fit_center-fit_range,fit_center+ fit_range);
         gStyle->SetOptFit();
         // c1->Print("0.9_peak_test/"+title+".pdf");
