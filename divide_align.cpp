@@ -92,6 +92,8 @@ int main(int argc, char *argv[])
 	align.Align(tracks, Xcenter, Ycenter, nPatterns);
 	// align.WriteAlignPar("align_output/alignPar_" + title + ".root");
 
+	// Calculate bicubic correction and apply alignment.
+	/*
 	TFile *alignParFile = new TFile(Form("align_output/alignPar_binWidth%.0f_robustFactor%.1f.root", binWidth, robustFactor));
 	if (alignParFile->IsZombie())
 	{
@@ -256,21 +258,24 @@ int main(int argc, char *argv[])
 			pidForTree = pid;
 			testShiftAfter->Fill();
 
-			// apply alignment
+			// Apply alignment with bicubic correction
 			s->SetX(s->X() + shiftXForThisSeg);
 			s->SetY(s->Y() + shiftYForThisSeg);
 		}
 	}
 	testShiftAfter->Write();
 	testWeight->Write();
+	*/
 
+	// Save linked_tracks.root after divide alignment.
 	TObjArray *tracks_t = new TObjArray;
 	for (int itrk = 0; itrk < ntrk; itrk++)
 	{
 		EdbTrackP *t = (EdbTrackP *)tracks->At(itrk);
 		tracks_t->Add(t);
 	}
-	dproc->MakeTracksTree(*tracks_t, 0, 0, Form("/data/Users/kokui/FASERnu/F222/zone4/temp/TFD/vert32063_pl053_167_new/reco32_065000_050000/v15/linked_tracks_after_align_binWidth%.0f_robustFactor%.1f_bicubic.root", binWidth, robustFactor));
+	// dproc->MakeTracksTree(*tracks_t, 0, 0, Form("/data/Users/kokui/FASERnu/F222/zone4/temp/TFD/vert32063_pl053_167_new/reco32_065000_050000/v15/linked_tracks_after_align_binWidth%.0f_robustFactor%.1f_bicubic.root", binWidth, robustFactor));
+	dproc->MakeTracksTree(*tracks_t, 0, 0, Form("linked_tracks_after_align_binWidth%.0f_robustFactor%.1f_bicubic.root", binWidth, robustFactor));
 	
 	auto end = std::chrono::system_clock::now();
 	auto dur = end - start;

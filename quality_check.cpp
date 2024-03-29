@@ -25,10 +25,10 @@ int main(int argc, char *argv[])
 	EdbDataProc *dproc = new EdbDataProc;
 	EdbPVRec *pvr = new EdbPVRec;
 
-	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=2");
+	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "nseg>=2");
 	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "npl>=64");
 	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$%20000==0");
-	dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
+	// dproc->ReadTracksTree(*pvr, filename_linked_tracks, "Entry$<5000");
 
 	TObjArray *tracks = pvr->GetTracks();
 	int ntrk = tracks->GetEntriesFast();

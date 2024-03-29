@@ -11,7 +11,7 @@ int read_position_resolution_text(const char *filename)
     TH2D *histPositionResolutionX = new TH2D("histPositionResolutionX", "position resolution x;plate;reco", plMax - plMin + 1, plMin - 0.5, plMax + 0.5, 63, 1 - 0.5, 63 + 0.5);
     TH2D *histPositionResolutionY = new TH2D("histPositionResolutionY", "position resolution y;plate;reco", plMax - plMin + 1, plMin - 0.5, plMax + 0.5, 63, 1 - 0.5, 63 + 0.5);
     TH2D *histPositionResolutionXY = new TH2D("histPositionResolutionXY", "position resolution;x (#mum);y (#mum)", 9 * nDivisionX, -2500, 132500, 7 * nDivisionY, -2500, 102500);
-    TH2D *histPositionResolutionPID = new TH2D("histPositionResolutionPID", "position_resolution;PID;subVolume*63+reco", 30, -0.5, 29.5, 13 * 63, 20 * 63 + 1 - 0.5, 32 * 63 + 63 + 0.5);
+    // TH2D *histPositionResolutionPID = new TH2D("histPositionResolutionPID", "position_resolution;PID;subVolume*63+reco", 30, -0.5, 29.5, 13 * 63, 20 * 63 + 1 - 0.5, 32 * 63 + 63 + 0.5);
     TH1D *histPositionResolutionXDistribution = new TH1D("histPositionResolutionXDistribution", "position resolution x;position resolution (#mum);", 100, 0, 1.6);
     TH1D *histPositionResolutionYDistribution = new TH1D("histPositionResolutionYDistribution", "position resolution y;position resolution (#mum);", 100, 0, 1.6);
     TH1D *histPositionResolutionDistribution = new TH1D("histPositionResolutionDistribution", "position resolution x and y;position resolution (#mum);", 100, 0, 1.6);
@@ -123,11 +123,11 @@ int read_position_resolution_text(const char *filename)
     histPositionResolutionXY->SetStats(0);
     gPad->RedrawAxis();
 
-    TCanvas *c3 = new TCanvas();
-    histPositionResolutionPID->SetMaximum(1.0);
-    histPositionResolutionPID->SetMinimum(0.0);
-    histPositionResolutionPID->Draw("colz");
-    histPositionResolutionPID->SetStats(0);
+    // TCanvas *c3 = new TCanvas();
+    // histPositionResolutionPID->SetMaximum(1.0);
+    // histPositionResolutionPID->SetMinimum(0.0);
+    // histPositionResolutionPID->Draw("colz");
+    // histPositionResolutionPID->SetStats(0);
 
     TCanvas *c4 = new TCanvas();
     histPositionResolutionXDistribution->Draw();
